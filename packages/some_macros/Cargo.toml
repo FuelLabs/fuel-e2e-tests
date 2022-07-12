@@ -1,0 +1,17 @@
+[package]
+name = "some_macros"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc_macro = true
+
+[dependencies]
+syn = "1.0.12"
+proc-macro2 = "1.0"
+const_format = "0.2.26"
+
+fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
+third = { path = "../third" }

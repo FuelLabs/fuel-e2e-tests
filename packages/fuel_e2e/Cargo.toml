@@ -1,0 +1,21 @@
+[package]
+name = "fuel_e2e"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+proc-macro2 = "1.0.40"
+anyhow = "1.0.58"
+fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
+hex = "0.4.3"
+ctor = "0.1.22"
+sha2 = "0.10.2"
+tokio = "1.19.2"
+tracing = { version = "0.1", default-features = false }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
+const_format = "0.2.26"
+
+third = { path = "../third" }
+some_macros = { path = "../some_macros" }
