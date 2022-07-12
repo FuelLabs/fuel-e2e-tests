@@ -1,11 +1,12 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn type_safe_output_values() -> Result<(), Error> {
     // Generates the bindings from the an ABI definition inline.
     // The generated bindings can be accessed through `SimpleContract`.
-    abigen!(MyContract, "packages/fuel_e2e/tests/test_projects/contract_output_test/out/debug/contract_output_test-abi.json");
+    test_project_abigen!(MyContract, "contract_output_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 

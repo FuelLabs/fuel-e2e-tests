@@ -1,13 +1,11 @@
 use fuels::prelude::*;
 use fuels::tx::Receipt;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_amount_and_asset_forwarding() -> Result<(), Error> {
-    abigen!(
-        TestFuelCoinContract,
-        "packages/fuel_e2e/tests/test_projects/token_ops/out/debug/token_ops-abi.json"
-    );
+    test_project_abigen!(TestFuelCoinContract, "token_ops");
 
     let wallet = launch_provider_and_get_wallet().await;
 

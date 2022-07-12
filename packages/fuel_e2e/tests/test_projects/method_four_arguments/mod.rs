@@ -1,14 +1,12 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_methods_typeless_argument() -> Result<(), Error> {
     // Generates the bindings from the an ABI definition inline.
     // The generated bindings can be accessed through `MyContract`.
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/method_four_arguments/out/debug/method_four_arguments-abi.json"
-    );
+    test_project_abigen!(MyContract, "method_four_arguments");
 
     let wallet = launch_provider_and_get_wallet().await;
 

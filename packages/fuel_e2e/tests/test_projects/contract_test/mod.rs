@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_array() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -35,10 +33,7 @@ async fn test_array() -> Result<(), Error> {
 async fn test_arrays_with_custom_types() -> Result<(), Error> {
     // Generates the bindings from the an ABI definition inline.
     // The generated bindings can be accessed through `MyContract`.
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -80,10 +75,7 @@ async fn test_arrays_with_custom_types() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_call_param_gas_errors() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -126,10 +118,7 @@ async fn test_call_param_gas_errors() -> Result<(), Error> {
 async fn test_gas_errors() -> Result<(), Error> {
     // Generates the bindings from the an ABI definition inline.
     // The generated bindings can be accessed through `MyContract`.
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -175,10 +164,7 @@ async fn test_gas_errors() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_multi_call() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -210,10 +196,7 @@ async fn test_multi_call() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_multi_call_script_workflow() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
     let client = &wallet.get_provider()?.client;
@@ -250,10 +233,7 @@ async fn test_multi_call_script_workflow() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_multiple_args() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -282,10 +262,7 @@ async fn test_multiple_args() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_provider_launch_and_connect() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let mut wallet = LocalWallet::new_random(None);
 
@@ -329,10 +306,7 @@ async fn test_provider_launch_and_connect() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_transaction_script_workflow() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_test/out/debug/contract_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_test");
 
     let wallet = launch_provider_and_get_wallet().await;
     let client = &wallet.get_provider()?.client;

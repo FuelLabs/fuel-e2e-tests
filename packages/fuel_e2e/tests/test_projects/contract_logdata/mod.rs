@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_logd_receipts() -> Result<(), Error> {
-    abigen!(
-        LoggingContract,
-        "packages/fuel_e2e/tests/test_projects/contract_logdata/out/debug/contract_logdata-abi.json"
-    );
+    test_project_abigen!(LoggingContract, "contract_logdata");
 
     let wallet = launch_provider_and_get_wallet().await;
 

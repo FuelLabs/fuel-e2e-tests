@@ -1,14 +1,12 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn call_with_empty_return() -> Result<(), Error> {
     // Generates the bindings from the an ABI definition inline.
     // The generated bindings can be accessed through `MyContract`.
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/call_empty_return/out/debug/call_empty_return-abi.json"
-    );
+    test_project_abigen!(MyContract, "call_empty_return");
 
     let wallet = launch_provider_and_get_wallet().await;
 

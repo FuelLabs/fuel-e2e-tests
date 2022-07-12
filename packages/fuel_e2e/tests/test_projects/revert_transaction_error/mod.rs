@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_reverting_transaction() -> Result<(), Error> {
-    abigen!(
-        RevertingContract,
-        "packages/fuel_e2e/tests/test_projects/revert_transaction_error/out/debug/revert_transaction_error-abi.json"
-    );
+    test_project_abigen!(RevertingContract, "revert_transaction_error");
 
     let wallet = launch_provider_and_get_wallet().await;
 

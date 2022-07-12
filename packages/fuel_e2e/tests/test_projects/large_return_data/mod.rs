@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_large_return_data() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/large_return_data/out/debug/large_return_data-abi.json"
-    );
+    test_project_abigen!(MyContract, "large_return_data");
 
     let wallet = launch_provider_and_get_wallet().await;
 

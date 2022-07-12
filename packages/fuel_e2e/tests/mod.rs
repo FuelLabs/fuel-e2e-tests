@@ -3,6 +3,7 @@ mod test_projects;
 use fuels::prelude::*;
 
 use sha2::{Digest, Sha256};
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 /// #[ctor::ctor] Marks a function or static variable as a library/executable constructor.
@@ -450,7 +451,7 @@ async fn compile_bindings_struct_input() {
         ]
         "#,
     );
-    // Because of the abigen! macro, `MyStruct` is now in scope
+    // Because of the test_project_abigen! macro, `MyStruct` is now in scope
     // and can be used!
     let input = MyStruct {
         foo: vec![10, 2],
@@ -615,15 +616,9 @@ async fn create_struct_from_decoded_tokens() -> Result<(), Error> {
 #[tokio::test]
 async fn test_contract_calling_contract() -> Result<(), Error> {
     // Tests a contract call that calls another contract (FooCaller calls FooContract underneath)
-    abigen!(
-        FooContract,
-        "packages/fuel_e2e/tests/test_projects/foo_contract/out/debug/foo_contract-abi.json"
-    );
+    test_project_abigen!(FooContract, "foo_contract");
 
-    abigen!(
-        FooCaller,
-        "packages/fuel_e2e/tests/test_projects/foo_caller_contract/out/debug/foo_caller_contract-abi.json"
-    );
+    test_project_abigen!(FooCaller, "foo_caller_contract");
 
     let wallet = launch_provider_and_get_wallet().await;
 

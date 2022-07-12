@@ -1,14 +1,12 @@
 use fuels::prelude::*;
 
 use fuels::prelude::Error::TransactionError;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn contract_deployment_respects_maturity() -> anyhow::Result<()> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/transaction_block_height/out/debug/transaction_block_height-abi.json"
-    );
+    test_project_abigen!(MyContract, "transaction_block_height");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -37,10 +35,7 @@ async fn contract_deployment_respects_maturity() -> anyhow::Result<()> {
 }
 #[tokio::test]
 async fn contract_method_call_respects_maturity() -> anyhow::Result<()> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/transaction_block_height/out/debug/transaction_block_height-abi.json"
-    );
+    test_project_abigen!(MyContract, "transaction_block_height");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -68,10 +63,7 @@ async fn contract_method_call_respects_maturity() -> anyhow::Result<()> {
 }
 #[tokio::test]
 async fn gql_height_info_is_correct() -> anyhow::Result<()> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/transaction_block_height/out/debug/transaction_block_height-abi.json"
-    );
+    test_project_abigen!(MyContract, "transaction_block_height");
 
     let wallet = launch_provider_and_get_wallet().await;
     let provider = &wallet.get_provider().unwrap();

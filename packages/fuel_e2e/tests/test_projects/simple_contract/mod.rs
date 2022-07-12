@@ -7,9 +7,9 @@ use sha2::{Sha256, Digest};
 async fn compile_bindings_from_contract_file() {
     // Generates the bindings from an ABI definition in a JSON file
     // The generated bindings can be accessed through `SimpleContract`.
-    abigen!(
+    test_project_abigen!(
         SimpleContract,
-        "packages/fuel_e2e/tests/test_projects/simple_contract/out/debug/simple_contract-abi.json",
+        "simple_contract",
     );
 
     let wallet = launch_provider_and_get_wallet().await;

@@ -1,13 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn nested_structs() -> Result<(), Error> {
-    abigen!(
-        NestedStructs,
-        "packages/fuel_e2e/tests/test_projects/nested_structs/out/debug\
-        /nested_structs-abi.json"
-    );
+    test_project_abigen!(NestedStructs, "nested_structs");
 
     let wallet = launch_provider_and_get_wallet().await;
 

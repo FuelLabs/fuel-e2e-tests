@@ -1,13 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn can_use_try_into_to_construct_enum_from_bytes() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/enum_inside_struct/out/debug\
-        /enum_inside_struct-abi.json"
-    );
+    test_project_abigen!(MyContract, "enum_inside_struct");
     // ANCHOR: manual_decode
     let shaker_in_bytes: Vec<u8> = vec![0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2];
 
@@ -31,11 +28,7 @@ async fn can_use_try_into_to_construct_enum_from_bytes() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn can_use_try_into_to_construct_struct_from_bytes() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/enum_inside_struct/out/debug\
-        /enum_inside_struct-abi.json"
-    );
+    test_project_abigen!(MyContract, "enum_inside_struct");
     let cocktail_in_bytes: Vec<u8> = vec![
         0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3,
     ];
@@ -61,11 +54,7 @@ async fn can_use_try_into_to_construct_struct_from_bytes() -> Result<(), Error> 
 }
 #[tokio::test]
 async fn workflow_enum_inside_struct() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/enum_inside_struct/out/debug\
-        /enum_inside_struct-abi.json"
-    );
+    test_project_abigen!(MyContract, "enum_inside_struct");
 
     let wallet = launch_provider_and_get_wallet().await;
 

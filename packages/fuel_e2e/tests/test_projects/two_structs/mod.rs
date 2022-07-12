@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn abigen_different_structs_same_arg_name() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/two_structs/out/debug/two_structs-abi.json",
-    );
+    test_project_abigen!(MyContract, "two_structs",);
 
     let wallet = launch_provider_and_get_wallet().await;
 

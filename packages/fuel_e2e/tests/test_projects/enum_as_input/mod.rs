@@ -1,13 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn enum_as_input() -> Result<(), Error> {
-    abigen!(
-        EnumTesting,
-        "packages/fuel_e2e/tests/test_projects/enum_as_input/out/debug\
-        /enum_as_input-abi.json"
-    );
+    test_project_abigen!(EnumTesting, "enum_as_input");
 
     let wallet = launch_provider_and_get_wallet().await;
 

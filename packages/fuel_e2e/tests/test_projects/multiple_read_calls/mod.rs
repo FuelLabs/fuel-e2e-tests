@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn multiple_read_calls() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/multiple_read_calls/out/debug/multiple_read_calls-abi.json"
-    );
+    test_project_abigen!(MyContract, "multiple_read_calls");
 
     let wallet = launch_provider_and_get_wallet().await;
 

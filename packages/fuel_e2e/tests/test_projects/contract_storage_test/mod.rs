@@ -1,14 +1,12 @@
 use fuels::prelude::*;
 use fuels::tx::{Bytes32, StorageSlot};
+use some_macros::test_project_abigen;
 use std::str::FromStr;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_init_storage_automatically_bad_json_path() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_storage_test/out/debug/contract_storage_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_storage_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -16,10 +14,11 @@ async fn test_init_storage_automatically_bad_json_path() -> Result<(), Error> {
         test_project_bin_path!("contract_storage_test"),
         &wallet,
         TxParameters::default(),
-        StorageConfiguration::with_storage_path(
-            Some("packages/fuel_e2e/tests/test_projects/contract_storage_test/out/debug/contract_storage_test-storage_slts.json".to_string())),
+        StorageConfiguration::with_storage_path(Some("contract_storage_test".to_string())),
         Salt::default(),
-    ).await.expect_err("Should fail");
+    )
+    .await
+    .expect_err("Should fail");
 
     let expected = "Invalid data:";
     assert!(response.to_string().starts_with(expected));
@@ -28,10 +27,7 @@ async fn test_init_storage_automatically_bad_json_path() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_init_storage_automatically() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_storage_test/out/debug/contract_storage_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_storage_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 
@@ -68,10 +64,7 @@ async fn test_init_storage_automatically() -> Result<(), Error> {
 }
 #[tokio::test]
 async fn test_storage_initialization() -> Result<(), Error> {
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/contract_storage_test/out/debug/contract_storage_test-abi.json"
-    );
+    test_project_abigen!(MyContract, "contract_storage_test");
 
     let wallet = launch_provider_and_get_wallet().await;
 

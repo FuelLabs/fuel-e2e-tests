@@ -1,12 +1,10 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn test_auth_msg_sender_from_sdk() -> Result<(), Error> {
-    abigen!(
-        AuthContract,
-        "packages/fuel_e2e/tests/test_projects/auth_testing_contract/out/debug/auth_testing_contract-abi.json"
-    );
+    test_project_abigen!(AuthContract, "auth_testing_contract");
 
     let wallet = launch_provider_and_get_wallet().await;
 

@@ -1,14 +1,12 @@
 use fuels::prelude::*;
+use some_macros::test_project_abigen;
 use third::test_project_bin_path;
 
 #[tokio::test]
 async fn call_with_structs() -> Result<(), Error> {
     // Generates the bindings from the an ABI definition inline.
     // The generated bindings can be accessed through `MyContract`.
-    abigen!(
-        MyContract,
-        "packages/fuel_e2e/tests/test_projects/complex_types_contract/out/debug/complex_types_contract-abi.json"
-    );
+    test_project_abigen!(MyContract, "complex_types_contract");
 
     let wallet = launch_provider_and_get_wallet().await;
 
