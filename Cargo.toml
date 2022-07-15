@@ -1,2 +1,3 @@
 [workspace]
 members = ["packages/fuel_e2e", "packages/some_macros", "packages/third"]
+build = "build/main.rs"

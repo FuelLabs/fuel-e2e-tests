@@ -2,20 +2,43 @@
 name = "fuel_e2e"
 version = "0.1.0"
 edition = "2021"
+build = "build/build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dev-dependencies]
+forc = { version = "0.18.1", features = ["test"] }
+forc-pkg = { version = "0.18.1" }
 proc-macro2 = "1.0.40"
 anyhow = "1.0.58"
 fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
 hex = "0.4.3"
 ctor = "0.1.22"
 sha2 = "0.10.2"
-tokio = "1.19.2"
+tokio = { version = "1.19.2", features = ["fs"] }
 tracing = { version = "0.1", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
 const_format = "0.2.26"
+tokio-stream = { version = "0.1.9", features = ["fs"] }
+serde_json = "1.0.82"
+futures = "0.3.21"
 
 third = { path = "../third" }
 some_macros = { path = "../some_macros" }
+
+[build-dependencies]
+futures = "0.3.21"
+forc = { version = "0.18.1", features = ["test"] }
+forc-pkg = { version = "0.18.1" }
+proc-macro2 = "1.0.40"
+anyhow = "1.0.58"
+fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
+hex = "0.4.3"
+ctor = "0.1.22"
+sha2 = "0.10.2"
+tokio = { version = "1.19.2", features = ["fs"] }
+tracing = { version = "0.1", default-features = false }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
+const_format = "0.2.26"
+tokio-stream = { version = "0.1.9", features = ["fs"] }
+serde_json = "1.0.82"
+
