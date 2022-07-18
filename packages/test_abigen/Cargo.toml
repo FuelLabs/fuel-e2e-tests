@@ -11,7 +11,5 @@ proc_macro = true
 [dependencies]
 syn = "1.0.12"
 proc-macro2 = "1.0"
-const_format = "0.2.26"
-
-fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
+fuels-core = { git = "https://github.com/FuelLabs/fuels-rs" }
 test_macros = { path = "../test_macros" }

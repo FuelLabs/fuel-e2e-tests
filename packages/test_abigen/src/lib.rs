@@ -1,4 +1,4 @@
-use fuels::core::code_gen::abigen::Abigen;
+use fuels_core::code_gen::abigen::Abigen;
 use proc_macro::TokenStream;
 use syn::parse::{Parse, ParseStream, Result as ParseResult};
 use syn::{parse_macro_input, Ident, LitStr, Token};
