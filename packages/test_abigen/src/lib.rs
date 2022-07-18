@@ -2,7 +2,7 @@ use fuels::core::code_gen::abigen::Abigen;
 use proc_macro::TokenStream;
 use syn::parse::{Parse, ParseStream, Result as ParseResult};
 use syn::{parse_macro_input, Ident, LitStr, Token};
-use third::test_project_abi_path;
+use test_macros::test_project_abi_path;
 
 #[proc_macro]
 pub fn test_project_abigen(input: TokenStream) -> TokenStream {

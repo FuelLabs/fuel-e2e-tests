@@ -1,8 +1,8 @@
 use fuels::prelude::*;
 use fuels::tx::{Bytes32, StorageSlot};
-use some_macros::test_project_abigen;
 use std::str::FromStr;
-use third::test_project_bin_path;
+use test_abigen::test_project_abigen;
+use test_macros::test_project_bin_path;
 
 #[tokio::test]
 async fn test_init_storage_automatically_bad_json_path() -> Result<(), Error> {

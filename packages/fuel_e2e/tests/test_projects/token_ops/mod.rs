@@ -1,7 +1,7 @@
 use fuels::prelude::*;
 use fuels::tx::Receipt;
-use some_macros::test_project_abigen;
-use third::test_project_bin_path;
+use test_abigen::test_project_abigen;
+use test_macros::test_project_bin_path;
 
 #[tokio::test]
 async fn test_amount_and_asset_forwarding() -> Result<(), Error> {

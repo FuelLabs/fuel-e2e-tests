@@ -3,8 +3,8 @@ mod test_projects;
 use fuels::prelude::*;
 
 use sha2::{Digest, Sha256};
-use some_macros::test_project_abigen;
-use third::test_project_bin_path;
+use test_abigen::test_project_abigen;
+use test_macros::test_project_bin_path;
 
 /// #[ctor::ctor] Marks a function or static variable as a library/executable constructor.
 /// This uses OS-specific linker sections to call a specific function at load time.

@@ -1,8 +1,8 @@
 use fuels::prelude::*;
 
 use fuels::prelude::Error::TransactionError;
-use some_macros::test_project_abigen;
-use third::test_project_bin_path;
+use test_abigen::test_project_abigen;
+use test_macros::test_project_bin_path;
 
 #[tokio::test]
 async fn contract_deployment_respects_maturity() -> anyhow::Result<()> {

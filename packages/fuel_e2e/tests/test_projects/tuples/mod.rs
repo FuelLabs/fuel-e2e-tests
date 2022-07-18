@@ -1,6 +1,6 @@
 use fuels::prelude::*;
-use some_macros::test_project_abigen;
-use third::test_project_bin_path;
+use test_abigen::test_project_abigen;
+use test_macros::test_project_bin_path;
 
 #[tokio::test]
 async fn test_tuples() -> Result<(), Error> {

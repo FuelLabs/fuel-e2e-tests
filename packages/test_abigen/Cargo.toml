@@ -1,5 +1,5 @@
 [package]
-name = "some_macros"
+name = "test_abigen"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,4 +14,4 @@ proc-macro2 = "1.0"
 const_format = "0.2.26"
 
 fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
-third = { path = "../third" }
+test_macros = { path = "../test_macros" }

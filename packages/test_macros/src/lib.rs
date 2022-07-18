@@ -23,7 +23,7 @@ macro_rules! test_project_abi_path {
         use const_format::formatcp;
         formatcp!(
             "{}/{}-abi.json",
-            ::third::test_project_build_path!($project_name),
+            $crate::test_project_build_path!($project_name),
             $project_name
         )
     }};
@@ -43,7 +43,7 @@ macro_rules! test_project_bin_path {
         use const_format::formatcp;
         formatcp!(
             "{}/{}.bin",
-            ::third::test_project_build_path!($project_name),
+            $crate::test_project_build_path!($project_name),
             $project_name
         )
     }};
