@@ -47,3 +47,15 @@ macro_rules! test_project_bin_path {
         )
     }};
 }
+
+#[macro_export]
+macro_rules! test_project_storage_path {
+    ($project_name:literal) => {{
+        $crate::formatcp!(
+            "{}/{}-storage_slots.json",
+            $crate::test_project_build_path!($project_name),
+            $project_name
+        )
+        .to_string()
+    }};
+}

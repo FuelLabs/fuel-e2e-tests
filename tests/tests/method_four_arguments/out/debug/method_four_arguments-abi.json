@@ -1,0 +1,15 @@
+[
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "method_with_empty_argument",
+    "outputs": [
+      {
+        "name": "",
+        "type": "u64",
+        "components": null,
+        "typeArguments": null
+      }
+    ]
+  }
+]

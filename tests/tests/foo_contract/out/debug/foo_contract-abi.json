@@ -1,0 +1,22 @@
+[
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "value",
+        "type": "bool",
+        "components": null,
+        "typeArguments": null
+      }
+    ],
+    "name": "foo",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "components": null,
+        "typeArguments": null
+      }
+    ]
+  }
+]

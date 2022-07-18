@@ -1,0 +1,144 @@
+[
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "get_standard_enum",
+    "outputs": [
+      {
+        "name": "",
+        "type": "enum StandardEnum",
+        "components": [
+          {
+            "name": "One",
+            "type": "b256",
+            "components": null,
+            "typeArguments": null
+          },
+          {
+            "name": "Two",
+            "type": "u32",
+            "components": null,
+            "typeArguments": null
+          },
+          {
+            "name": "Three",
+            "type": "bool",
+            "components": null,
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "arg",
+        "type": "enum StandardEnum",
+        "components": [
+          {
+            "name": "One",
+            "type": "b256",
+            "components": null,
+            "typeArguments": null
+          },
+          {
+            "name": "Two",
+            "type": "u32",
+            "components": null,
+            "typeArguments": null
+          },
+          {
+            "name": "Three",
+            "type": "bool",
+            "components": null,
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ],
+    "name": "check_standard_enum_integrity",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "components": null,
+        "typeArguments": null
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "get_unit_enum",
+    "outputs": [
+      {
+        "name": "",
+        "type": "enum UnitEnum",
+        "components": [
+          {
+            "name": "One",
+            "type": "()",
+            "components": [],
+            "typeArguments": null
+          },
+          {
+            "name": "Two",
+            "type": "()",
+            "components": [],
+            "typeArguments": null
+          },
+          {
+            "name": "Three",
+            "type": "()",
+            "components": [],
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "arg",
+        "type": "enum UnitEnum",
+        "components": [
+          {
+            "name": "One",
+            "type": "()",
+            "components": [],
+            "typeArguments": null
+          },
+          {
+            "name": "Two",
+            "type": "()",
+            "components": [],
+            "typeArguments": null
+          },
+          {
+            "name": "Three",
+            "type": "()",
+            "components": [],
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ],
+    "name": "check_unit_enum_integrity",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "components": null,
+        "typeArguments": null
+      }
+    ]
+  }
+]

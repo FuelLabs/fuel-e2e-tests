@@ -1,0 +1,96 @@
+[
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "struct User",
+        "components": [
+          {
+            "name": "address",
+            "type": "struct Address",
+            "components": [
+              {
+                "name": "value",
+                "type": "b256",
+                "components": null,
+                "typeArguments": null
+              }
+            ],
+            "typeArguments": null
+          },
+          {
+            "name": "weight",
+            "type": "u64",
+            "components": null,
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ],
+    "name": "wrapped_address",
+    "outputs": [
+      {
+        "name": "",
+        "type": "struct User",
+        "components": [
+          {
+            "name": "address",
+            "type": "struct Address",
+            "components": [
+              {
+                "name": "value",
+                "type": "b256",
+                "components": null,
+                "typeArguments": null
+              }
+            ],
+            "typeArguments": null
+          },
+          {
+            "name": "weight",
+            "type": "u64",
+            "components": null,
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "addr",
+        "type": "struct Address",
+        "components": [
+          {
+            "name": "value",
+            "type": "b256",
+            "components": null,
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ],
+    "name": "unwrapped_address",
+    "outputs": [
+      {
+        "name": "",
+        "type": "struct Address",
+        "components": [
+          {
+            "name": "value",
+            "type": "b256",
+            "components": null,
+            "typeArguments": null
+          }
+        ],
+        "typeArguments": null
+      }
+    ]
+  }
+]

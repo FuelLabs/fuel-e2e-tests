@@ -1,0 +1,28 @@
+[
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "get_current_height",
+    "outputs": [
+      {
+        "name": "",
+        "type": "u64",
+        "components": null,
+        "typeArguments": null
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "calling_this_will_produce_a_block",
+    "outputs": [
+      {
+        "name": "",
+        "type": "()",
+        "components": [],
+        "typeArguments": null
+      }
+    ]
+  }
+]
