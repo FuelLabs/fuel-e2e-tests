@@ -3,16 +3,16 @@ macro_rules! test_project_build_path {
     ($project_name:literal) => {{
         use const_format::formatcp;
         formatcp!(
-            "{}/../fuel_e2e/tests/test_projects/{}/out/debug",
-            env!("CARGO_MANIFEST_DIR"),
+            "{}/compiled_sway_projects/{}",
+            env!("OUT_DIR"),
             $project_name
         )
     }};
 }
 pub fn test_project_build_path(project_name: &str) -> String {
     format!(
-        "{}/../fuel_e2e/tests/test_projects/{}/out/debug",
-        env!("CARGO_MANIFEST_DIR"),
+        "{}/compiled_sway_projects/{}",
+        std::env::var_os("OUT_DIR").unwrap().to_str().unwrap(),
         project_name
     )
 }
