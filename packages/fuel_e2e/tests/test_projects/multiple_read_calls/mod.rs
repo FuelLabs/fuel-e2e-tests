@@ -16,7 +16,7 @@ async fn multiple_read_calls() -> Result<(), Error> {
     )
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     contract_instance.store(42).call().await?;
 

@@ -15,7 +15,7 @@ async fn test_reverting_transaction() -> Result<(), Error> {
         StorageConfiguration::default(),
     )
     .await?;
-    let contract_instance = RevertingContract::new(contract_id.to_string(), wallet);
+    let contract_instance = RevertingContractBuilder::new(contract_id.to_string(), wallet).build();
     println!("Contract deployed @ {:x}", contract_id);
     let response = contract_instance.make_transaction_fail(0).call().await;
     assert!(matches!(response, Err(Error::ContractCallError(..))));

@@ -16,7 +16,7 @@ async fn enum_as_input() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = EnumTesting::new(id.to_string(), wallet);
+    let instance = EnumTestingBuilder::new(id.to_string(), wallet).build();
 
     let expected = StandardEnum::Two(12345);
     let actual = instance.get_standard_enum().call().await?.value;

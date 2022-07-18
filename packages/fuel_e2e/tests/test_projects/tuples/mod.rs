@@ -16,7 +16,7 @@ async fn test_tuples() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     let response = instance.returns_tuple((1, 2)).call().await?;
 

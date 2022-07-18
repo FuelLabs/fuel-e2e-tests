@@ -17,7 +17,7 @@ async fn test_amount_and_asset_forwarding() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = TestFuelCoinContract::new(id.to_string(), wallet.clone());
+    let instance = TestFuelCoinContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     let mut balance_response = instance.get_balance(id, id).call().await?;
     assert_eq!(balance_response.value, 0);

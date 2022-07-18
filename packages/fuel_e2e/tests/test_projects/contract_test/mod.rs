@@ -17,7 +17,7 @@ async fn test_array() -> Result<(), Error> {
     .await?;
 
     println!("Contract deployed @ {:x}", contract_id);
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     assert_eq!(
         contract_instance
@@ -46,7 +46,7 @@ async fn test_arrays_with_custom_types() -> Result<(), Error> {
     .await?;
 
     println!("Contract deployed @ {:x}", contract_id);
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     let persons = vec![
         Person {
@@ -87,7 +87,7 @@ async fn test_call_param_gas_errors() -> Result<(), Error> {
     )
     .await?;
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     // Transaction gas_limit is sufficient, call gas_forwarded is too small
     let response = contract_instance
@@ -130,7 +130,7 @@ async fn test_gas_errors() -> Result<(), Error> {
     )
     .await?;
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     // Test for insufficient gas.
     let response = contract_instance
@@ -176,7 +176,7 @@ async fn test_multi_call() -> Result<(), Error> {
     )
     .await?;
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet.clone());
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet.clone()).build();
 
     let call_handler_1 = contract_instance.initialize_counter(42);
     let call_handler_2 = contract_instance.get_array([42; 2].to_vec());
@@ -209,7 +209,7 @@ async fn test_multi_call_script_workflow() -> Result<(), Error> {
     )
     .await?;
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet.clone());
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet.clone()).build();
 
     let call_handler_1 = contract_instance.initialize_counter(42);
     let call_handler_2 = contract_instance.get_array([42; 2].to_vec());
@@ -245,7 +245,7 @@ async fn test_multiple_args() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     // Make sure we can call the contract with multiple arguments
     let response = instance.get(5, 6).call().await?;
@@ -286,7 +286,8 @@ async fn test_provider_launch_and_connect() -> Result<(), Error> {
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
 
-    let contract_instance_connected = MyContract::new(contract_id.to_string(), wallet.clone());
+    let contract_instance_connected =
+        MyContractBuilder::new(contract_id.to_string(), wallet.clone()).build();
 
     let response = contract_instance_connected
         .initialize_counter(42) // Build the ABI call
@@ -295,7 +296,8 @@ async fn test_provider_launch_and_connect() -> Result<(), Error> {
     assert_eq!(42, response.value);
 
     wallet.set_provider(launched_provider);
-    let contract_instance_launched = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance_launched =
+        MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     let response = contract_instance_launched
         .increment_counter(10)
@@ -319,7 +321,7 @@ async fn test_transaction_script_workflow() -> Result<(), Error> {
     )
     .await?;
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet.clone());
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet.clone()).build();
 
     let call_handler = contract_instance.initialize_counter(42);
 

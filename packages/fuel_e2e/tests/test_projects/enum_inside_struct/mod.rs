@@ -65,7 +65,7 @@ async fn workflow_enum_inside_struct() -> Result<(), Error> {
         StorageConfiguration::default(),
     )
     .await?;
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
     let response = instance.return_enum_inside_struct(11).call().await?;
     let expected = Cocktail {
         the_thing_you_mix_in: Shaker::Mojito(222),

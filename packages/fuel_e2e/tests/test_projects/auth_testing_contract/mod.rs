@@ -16,7 +16,7 @@ async fn test_auth_msg_sender_from_sdk() -> Result<(), Error> {
     )
     .await?;
 
-    let auth_instance = AuthContract::new(id.to_string(), wallet.clone());
+    let auth_instance = AuthContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     // Contract returns true if `msg_sender()` matches `wallet.address()`.
     let response = auth_instance

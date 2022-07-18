@@ -17,7 +17,7 @@ async fn abigen_different_structs_same_arg_name() -> Result<(), Error> {
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     let param_one = StructOne { foo: 42 };
     let param_two = StructTwo { bar: 42 };

@@ -17,7 +17,7 @@ async fn sway_native_types_support() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     let user = User {
         weight: 10,

@@ -17,7 +17,7 @@ async fn test_large_return_data() -> Result<(), Error> {
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     let res = contract_instance.get_id().call().await?;
 

@@ -19,7 +19,7 @@ async fn type_safe_output_values() -> Result<(), Error> {
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     // `response`'s type matches the return type of `is_event()`
     let response = contract_instance.is_even(10).call().await?;

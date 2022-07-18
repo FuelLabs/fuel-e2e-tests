@@ -62,7 +62,7 @@ async fn compile_bindings_array_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let input: Vec<u16> = vec![1, 2, 3, 4];
     let call_handler = contract_instance.takes_array(input);
@@ -107,7 +107,7 @@ async fn compile_bindings_b256_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let mut hasher = Sha256::new();
     hasher.update("test string".as_bytes());
@@ -156,7 +156,7 @@ async fn compile_bindings_bool_array_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let input: Vec<bool> = vec![true, false, true];
     let call_handler = contract_instance.takes_array(input);
@@ -201,7 +201,7 @@ async fn compile_bindings_byte_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_byte(10u8);
 
@@ -252,7 +252,7 @@ async fn compile_bindings_enum_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_enum(variant);
 
@@ -298,7 +298,7 @@ async fn compile_bindings_from_inline_contract() -> Result<(), Error> {
 
     let wallet = launch_provider_and_get_wallet().await;
     //`SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_ints_returns_bool(42_u32);
 
@@ -362,7 +362,7 @@ async fn compile_bindings_nested_struct_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_nested_struct(input);
 
@@ -403,7 +403,7 @@ async fn compile_bindings_string_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_string("This is a full sentence".into());
 
@@ -461,7 +461,7 @@ async fn compile_bindings_struct_input() {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_struct(input);
 
@@ -537,7 +537,7 @@ async fn create_nested_struct_from_decoded_tokens() -> Result<(), Error> {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_nested_struct(nested_struct_from_tokens);
 
@@ -599,7 +599,7 @@ async fn create_struct_from_decoded_tokens() -> Result<(), Error> {
     let wallet = launch_provider_and_get_wallet().await;
 
     // `SimpleContract` is the name of the contract
-    let contract_instance = SimpleContract::new(null_contract_id(), wallet);
+    let contract_instance = SimpleContractBuilder::new(null_contract_id(), wallet).build();
 
     let call_handler = contract_instance.takes_struct(struct_from_tokens);
 
@@ -632,7 +632,8 @@ async fn test_contract_calling_contract() -> Result<(), Error> {
     .await?;
     println!("Foo contract deployed @ {:x}", foo_contract_id);
 
-    let foo_contract_instance = FooContract::new(foo_contract_id.to_string(), wallet.clone());
+    let foo_contract_instance =
+        FooContractBuilder::new(foo_contract_id.to_string(), wallet.clone()).build();
 
     // Call the contract directly; it just flips the bool value that's passed.
     let res = foo_contract_instance.foo(true).call().await?;
@@ -652,7 +653,7 @@ async fn test_contract_calling_contract() -> Result<(), Error> {
     );
 
     let foo_caller_contract_instance =
-        FooCaller::new(foo_caller_contract_id.to_string(), wallet.clone());
+        FooCallerBuilder::new(foo_caller_contract_id.to_string(), wallet.clone()).build();
 
     // Calls the contract that calls the `FooContract` contract, also just
     // flips the bool value passed to it.

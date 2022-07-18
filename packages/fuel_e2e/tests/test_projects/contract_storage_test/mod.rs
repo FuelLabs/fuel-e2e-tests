@@ -52,7 +52,7 @@ async fn test_init_storage_automatically() -> Result<(), Error> {
         Bytes32::from_str("f383b0ce51358be57daa3b725fe44acdb2d880604e367199080b4379c41bb6ed")
             .unwrap();
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet.clone());
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet.clone()).build();
 
     let value = contract_instance.get_value_b256(*key1).call().await?.value;
     assert_eq!(value, [1u8; 32]);
@@ -86,7 +86,7 @@ async fn test_storage_initialization() -> Result<(), Error> {
     .await?;
     // ANCHOR_END: manual_storage
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet.clone());
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet.clone()).build();
 
     let result = contract_instance
         .get_value_b256(key.into())

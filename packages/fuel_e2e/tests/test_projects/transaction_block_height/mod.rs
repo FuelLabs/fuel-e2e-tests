@@ -47,7 +47,7 @@ async fn contract_method_call_respects_maturity() -> anyhow::Result<()> {
     )
     .await?;
 
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     let call_w_maturity = |call_maturity| {
         let mut prepared_call = instance.calling_this_will_produce_a_block();
@@ -75,7 +75,7 @@ async fn gql_height_info_is_correct() -> anyhow::Result<()> {
         StorageConfiguration::default(),
     )
     .await?;
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     let block_height_from_contract = || async {
         Ok(instance.get_current_height().simulate().await?.value) as Result<u64, Error>

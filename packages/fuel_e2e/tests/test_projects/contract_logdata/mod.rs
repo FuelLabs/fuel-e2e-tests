@@ -15,7 +15,7 @@ async fn test_logd_receipts() -> Result<(), Error> {
         StorageConfiguration::default(),
     )
     .await?;
-    let contract_instance = LoggingContract::new(id.to_string(), wallet.clone());
+    let contract_instance = LoggingContractBuilder::new(id.to_string(), wallet.clone()).build();
     let mut value = [0u8; 32];
     value[0] = 0xFF;
     value[1] = 0xEE;

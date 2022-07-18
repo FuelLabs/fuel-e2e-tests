@@ -19,7 +19,7 @@ async fn call_with_structs() -> Result<(), Error> {
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
     let counter_config = CounterConfig {
         dummy: true,
         initial_value: 42,

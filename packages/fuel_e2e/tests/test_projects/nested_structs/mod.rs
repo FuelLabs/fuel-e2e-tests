@@ -16,7 +16,7 @@ async fn nested_structs() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = NestedStructs::new(id.to_string(), wallet);
+    let instance = NestedStructsBuilder::new(id.to_string(), wallet).build();
 
     let expected = AllStruct {
         some_struct: SomeStruct { par_1: 12345 },

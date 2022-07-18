@@ -16,7 +16,7 @@ async fn type_inside_enum() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = MyContract::new(id.to_string(), wallet.clone());
+    let instance = MyContractBuilder::new(id.to_string(), wallet.clone()).build();
 
     // String inside enum
     let enum_string = SomeEnum::SomeStr("asdf".to_owned());

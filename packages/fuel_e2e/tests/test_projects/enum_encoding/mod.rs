@@ -16,7 +16,7 @@ async fn enum_coding_w_unit_enums() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = EnumTesting::new(id.to_string(), wallet);
+    let instance = EnumTestingBuilder::new(id.to_string(), wallet).build();
 
     // If we had a regression on the issue of unit enum encoding width, then
     // we'll end up mangling arg_2
@@ -53,7 +53,7 @@ async fn enum_coding_w_variable_width_variants() -> Result<(), Error> {
     )
     .await?;
 
-    let instance = EnumTesting::new(id.to_string(), wallet);
+    let instance = EnumTestingBuilder::new(id.to_string(), wallet).build();
 
     // If we had a regression on the issue of enum encoding width, then we'll
     // probably end up mangling arg_2 and onward which will fail this test.

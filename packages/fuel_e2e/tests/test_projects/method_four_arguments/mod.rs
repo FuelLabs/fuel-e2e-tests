@@ -19,7 +19,7 @@ async fn test_methods_typeless_argument() -> Result<(), Error> {
     .await?;
     println!("Contract deployed @ {:x}", contract_id);
 
-    let contract_instance = MyContract::new(contract_id.to_string(), wallet);
+    let contract_instance = MyContractBuilder::new(contract_id.to_string(), wallet).build();
 
     let response = contract_instance
         .method_with_empty_argument()
