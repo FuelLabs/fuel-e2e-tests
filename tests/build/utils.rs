@@ -12,17 +12,13 @@ pub async fn compile_sway_projects(
     projects: Vec<SwayProject>,
     target_dir: &Path,
 ) -> anyhow::Result<()> {
-    let shared_compiler = Arc::new(SwayCompiler::new(target_dir));
+    let compiler = Arc::new(SwayCompiler::new(target_dir));
 
     let futures = projects
         .into_iter()
         .map(|project| {
-            let compiler = Arc::clone(&shared_compiler);
-            async move {
-                let result = compiler.build(&project).await;
-                eprintln!("Finished building {:?}", project.path());
-                result
-            }
+            let compiler = Arc::clone(&compiler);
+            async move { compiler.build(&project).await }
         })
         .collect::<Vec<_>>();
 

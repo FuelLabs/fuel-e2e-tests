@@ -12,6 +12,7 @@ mod enum_inside_struct;
 mod foo_caller_contract;
 mod foo_contract;
 mod foo_contract_abi;
+mod from_sway_project_2;
 mod large_return_data;
 mod library_test;
 mod method_four_arguments;

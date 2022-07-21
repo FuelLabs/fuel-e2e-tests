@@ -1,2 +1,2 @@
 [workspace]
-members = ["tests", "packages/test_abigen", "packages/test_macros"]
+members = ["tests", "packages/test_abigen", "packages/test_macros", "xtask"]

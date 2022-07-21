@@ -8,6 +8,7 @@ build = "build/build.rs"
 [dev-dependencies]
 anyhow = "1.0.58"
 fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
+fuel-vm = "0.12.3"
 hex = "0.4.3"
 ctor = "0.1.22"
 sha2 = "0.10.2"
