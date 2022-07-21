@@ -149,11 +149,11 @@ impl SwayProject {
         dir.join("Forc.toml").is_file()
     }
 
-    pub(crate) fn path(&self) -> &Path {
+    pub fn path(&self) -> &Path {
         &self.path
     }
 
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
