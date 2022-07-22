@@ -40,9 +40,8 @@ impl SwayCompiler {
         }
     }
 
-    pub async fn build(&self, project: &SwayProject) -> anyhow::Result<()> {
-        let build_dir = self.prepare_project_build_dir(project.name()).await?;
-
+    pub async fn build(&self, project: &SwayProject) -> Result<(), CompilationError> {
+        let build_dir = self.target_dir.join(project.name());
         run_local_forc(project.path(), &build_dir)
             .await
             .map_err(|err| CompilationError {
@@ -51,12 +50,6 @@ impl SwayCompiler {
             })?;
 
         Ok(())
-    }
-
-    async fn prepare_project_build_dir(&self, project_name: &str) -> anyhow::Result<PathBuf> {
-        let out_dir = self.target_dir.join(project_name);
-        tokio::fs::create_dir_all(&out_dir).await?;
-        Ok(out_dir)
     }
 }
 

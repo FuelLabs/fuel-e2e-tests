@@ -15,5 +15,4 @@ tokio-stream = { version = "0.1.9", features = ["fs"] }
 serde_json = "1.0.82"
 serde = "1.0.139"
 itertools = "0.10.3"
-local_forc = { path = "../packages/local_forc" }
 strip-ansi-escapes = "0.1.1"
