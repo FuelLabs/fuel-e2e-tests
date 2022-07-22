@@ -66,6 +66,7 @@ pub async fn run_local_forc(project_dir: &Path, output_dir: &Path) -> anyhow::Re
             "local_forc",
             "--",
             "build",
+            "--silent",
             "--output-directory",
             &output_dir.to_string_lossy(),
             "--path",

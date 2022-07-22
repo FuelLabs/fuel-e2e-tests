@@ -41,7 +41,7 @@ async fn compile_projects(assets_dir: &Path, projects: &[SwayProject]) -> anyhow
                 .map(|err| format!("- {}", err.project_name))
                 .join("\n");
 
-            anyhow!("Errors while compiling sway projects: \n{msg}")
+            anyhow!("Following Sway projects could not be built: \n{msg}")
         })
 }
 

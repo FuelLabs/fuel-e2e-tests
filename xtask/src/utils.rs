@@ -2,12 +2,8 @@ use crate::build_local_forc;
 use crate::sway::{CompilationError, SwayCompiler, SwayProject};
 use anyhow::{anyhow, bail};
 use futures::future::join_all;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::fs::read_dir;
-use tokio_stream::wrappers::ReadDirStream;
-use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
     projects: &[SwayProject],
@@ -54,10 +50,6 @@ macro_rules! env_path {
     }};
 }
 
-pub fn track_file_changes(file: &Path) {
-    println!("cargo:rerun-if-changed={}", file.to_str().unwrap());
-}
-
 pub async fn discover_all_files_related_to_projects(
     projects: &[SwayProject],
 ) -> anyhow::Result<Vec<PathBuf>> {
@@ -84,24 +76,4 @@ pub async fn discover_all_files_related_to_projects(
         .filter_map(|r| r.ok())
         .flatten()
         .collect::<Vec<_>>())
-}
-
-pub async fn all_rust_files_in(dir: &Path) -> anyhow::Result<Vec<PathBuf>> {
-    let source_entries = ReadDirStream::new(read_dir(dir).await?)
-        .collect::<io::Result<Vec<_>>>()
-        .await?;
-
-    let files = source_entries
-        .into_iter()
-        .filter_map(|entry| {
-            let filepath = entry.path();
-            if filepath.is_file() && matches!(filepath.extension(), Some(ext) if ext == "rs") {
-                Some(filepath)
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    Ok(files)
 }
