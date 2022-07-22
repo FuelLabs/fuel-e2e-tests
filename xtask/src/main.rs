@@ -3,7 +3,7 @@ use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use xtask::sway::SwayProject;
 use xtask::utils::compile_sway_projects;
-use xtask::{checked_command_wo_output_capture, env_path};
+use xtask::{checked_command_fwd_output, env_path};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -21,16 +21,24 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 async fn run_tests() -> anyhow::Result<()> {
-    checked_command_wo_output_capture(env!("CARGO"), &["test", "--all", "--all-features"]).await
+    checked_command_fwd_output(env!("CARGO"), &["test", "--all", "--all-features"]).await
 }
 
 async fn compile_projects(assets_dir: &Path, projects: &[SwayProject]) -> anyhow::Result<()> {
+    eprintln!(
+        "Building sway projects: \n{}",
+        projects
+            .iter()
+            .map(|project| format!("- {}", project.name()))
+            .join("\n")
+    );
+
     compile_sway_projects(projects, assets_dir)
         .await
         .map_err(|errors| {
             let msg = errors
                 .iter()
-                .map(|err| format!("- {} Reason: {}", err.project_name, err.reason))
+                .map(|err| format!("- {}", err.project_name))
                 .join("\n");
 
             anyhow!("Errors while compiling sway projects: \n{msg}")

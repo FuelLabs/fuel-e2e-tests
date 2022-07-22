@@ -2,7 +2,6 @@ use crate::build_local_forc;
 use crate::sway::{CompilationError, SwayCompiler, SwayProject};
 use anyhow::{anyhow, bail};
 use futures::future::join_all;
-use itertools::Itertools;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -19,14 +18,6 @@ pub async fn compile_sway_projects(
         .expect("Failed to build local forc! Investigate!");
 
     let compiler = Arc::new(SwayCompiler::new(target_dir));
-
-    eprintln!(
-        "Building sway projects: \n{}",
-        projects
-            .iter()
-            .map(|project| format!("- {}", project.name()))
-            .join("\n")
-    );
 
     let futures = projects
         .iter()

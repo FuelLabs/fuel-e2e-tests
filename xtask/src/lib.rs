@@ -1,40 +1,37 @@
 use anyhow::bail;
+use itertools::Itertools;
 use std::ffi::OsStr;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::path::Path;
+use std::process::Stdio;
 use tokio::process::Command;
 
 pub mod sway;
 pub mod utils;
 
-#[derive(Debug)]
-pub struct CommandOutput {
-    pub stdout: String,
-    pub stderr: String,
-}
-
-pub async fn checked_command_w_output_capture<T: AsRef<OsStr> + Debug>(
+pub async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
     command: &str,
     args: &[T],
-) -> anyhow::Result<CommandOutput> {
-    let output = Command::new(command)
+) -> anyhow::Result<()> {
+    let status = Command::new(command)
         .args(args)
         .kill_on_drop(true)
-        .output()
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
         .await?;
 
-    let stderr = to_colorless_string(&output.stderr)?;
-    let status = output.status;
-
     if !status.success() {
-        bail!("Running {command} {args:?} failed. Status: {status:?}. Message: {stderr}");
+        let ws_separated_args = args.iter().join(" ");
+
+        let command = format!("{} {}", command, ws_separated_args);
+        bail!("Running command: '{command}' failed with status: {status}");
     }
 
-    let stdout = to_colorless_string(&output.stderr)?;
-    Ok(CommandOutput { stdout, stderr })
+    Ok(())
 }
 
-pub async fn checked_command_wo_output_capture<T: AsRef<OsStr> + Debug>(
+pub async fn checked_command_fwd_output<T: AsRef<OsStr> + Debug>(
     command: &str,
     args: &[T],
 ) -> anyhow::Result<()> {
@@ -51,25 +48,16 @@ pub async fn checked_command_wo_output_capture<T: AsRef<OsStr> + Debug>(
     Ok(())
 }
 
-fn to_colorless_string(bytes: &[u8]) -> anyhow::Result<String> {
-    let bytes_w_no_color = strip_ansi_escapes::strip(&bytes)?;
-
-    Ok(String::from_utf8_lossy(&bytes_w_no_color).into_owned())
-}
-
-pub async fn build_local_forc() -> anyhow::Result<CommandOutput> {
-    checked_command_w_output_capture(
+pub async fn build_local_forc() -> anyhow::Result<()> {
+    checked_command_drop_output(
         env!("CARGO"),
         &["build", "--quiet", "--package", "local_forc"],
     )
     .await
 }
 
-pub async fn run_local_forc(
-    project_dir: &Path,
-    output_dir: &Path,
-) -> anyhow::Result<CommandOutput> {
-    checked_command_w_output_capture(
+pub async fn run_local_forc(project_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
+    checked_command_drop_output(
         env!("CARGO"),
         &[
             "run",
@@ -78,7 +66,6 @@ pub async fn run_local_forc(
             "local_forc",
             "--",
             "build",
-            "--silent",
             "--output-directory",
             &output_dir.to_string_lossy(),
             "--path",
