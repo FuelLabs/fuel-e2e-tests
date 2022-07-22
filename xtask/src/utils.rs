@@ -1,3 +1,4 @@
+use crate::build_local_forc;
 use crate::sway::{SwayCompiler, SwayProject};
 use anyhow::{anyhow, bail};
 use futures::future::join_all;
@@ -12,6 +13,7 @@ pub async fn compile_sway_projects(
     projects: Vec<SwayProject>,
     target_dir: &Path,
 ) -> anyhow::Result<()> {
+    build_local_forc().await?;
     let compiler = Arc::new(SwayCompiler::new(target_dir));
 
     let futures = projects

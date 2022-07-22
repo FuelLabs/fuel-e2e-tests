@@ -1,10 +1,9 @@
-use anyhow::{anyhow, bail};
-use forc::test::{forc_build, BuildCommand};
-use forc_pkg::Compiled;
-use std::fs::File;
+use crate::run_local_forc;
+use anyhow::bail;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::iter::once;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tokio::fs::read_dir;
 use tokio::io;
 use tokio_stream::wrappers::ReadDirStream;
@@ -16,6 +15,24 @@ pub struct SwayProject {
     path: PathBuf,
 }
 
+#[derive(Debug)]
+pub struct CompilationError {
+    pub project_name: String,
+    pub reason: String,
+}
+
+impl Display for CompilationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Project '{:?}' failed to compile! Reason: {}",
+            self.project_name, self.reason
+        )
+    }
+}
+
+impl Error for CompilationError {}
+
 impl SwayCompiler {
     pub fn new<T: Into<PathBuf>>(target_dir: T) -> SwayCompiler {
         SwayCompiler {
@@ -24,91 +41,22 @@ impl SwayCompiler {
     }
 
     pub async fn build(&self, project: &SwayProject) -> anyhow::Result<()> {
-        {
-            let compiled = Arc::new(Self::compile_project(project).await?);
+        let build_dir = self.prepare_project_build_dir(project.name()).await?;
 
-            let build_dir = Arc::new(self.prepare_project_build_dir(project.name()).await?);
+        run_local_forc(project.path(), &build_dir)
+            .await
+            .map_err(|err| CompilationError {
+                project_name: project.name().to_string(),
+                reason: err.to_string(),
+            })?;
 
-            self.write_binary(&compiled, &build_dir, project.name())
-                .await?;
-
-            self.write_abi(
-                Arc::clone(&compiled),
-                Arc::clone(&build_dir),
-                project.name().to_string(),
-            )
-            .await?;
-
-            self.write_storage_slots(compiled, build_dir, project.name().to_string())
-                .await
-        }
-        .map_err(|err| anyhow!("Error while building project {:?}: {}", project, err))
-    }
-
-    async fn write_abi(
-        &self,
-        compiled: Arc<Compiled>,
-        out_dir: Arc<PathBuf>,
-        project_name: String,
-    ) -> anyhow::Result<()> {
-        tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-            let filename = format!("{}-abi", project_name);
-            let path = out_dir.join(&filename).with_extension("json");
-            let file = File::create(path)?;
-
-            serde_json::to_writer_pretty(&file, &compiled.json_abi)?;
-            Ok(())
-        })
-        .await?
-    }
-
-    async fn write_storage_slots(
-        &self,
-        compiled: Arc<Compiled>,
-        out_dir: Arc<PathBuf>,
-        project_name: String,
-    ) -> anyhow::Result<()> {
-        tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
-            let filename = format!("{}-storage_slots", project_name);
-            let path = out_dir.join(&filename).with_extension("json");
-            let file = File::create(path)?;
-
-            serde_json::to_writer_pretty(&file, &compiled.storage_slots)?;
-            Ok(())
-        })
-        .await?
-    }
-
-    async fn write_binary(
-        &self,
-        compiled: &Compiled,
-        out_dir: &Path,
-        project_name: &str,
-    ) -> io::Result<()> {
-        tokio::fs::write(
-            out_dir.join(project_name).with_extension("bin"),
-            &compiled.bytecode,
-        )
-        .await
+        Ok(())
     }
 
     async fn prepare_project_build_dir(&self, project_name: &str) -> anyhow::Result<PathBuf> {
         let out_dir = self.target_dir.join(project_name);
         tokio::fs::create_dir_all(&out_dir).await?;
         Ok(out_dir)
-    }
-
-    async fn compile_project(project: &SwayProject) -> anyhow::Result<Compiled> {
-        let path = project.path().to_str().unwrap().to_string();
-        tokio::task::spawn_blocking(move || {
-            forc_build::build(BuildCommand {
-                path: Some(path),
-                locked: false,
-                silent_mode: false,
-                ..Default::default()
-            })
-        })
-        .await?
     }
 }
 

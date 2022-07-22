@@ -1,21 +1,15 @@
 pub use const_format::formatcp;
 
+pub const TEST_MACRO_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
 #[macro_export]
 macro_rules! test_project_build_path {
     ($project_name:literal) => {{
-        $crate::formatcp!(
-            "{}/compiled_sway_projects/{}",
-            env!("OUT_DIR"),
-            $project_name
-        )
+        $crate::formatcp!("{}/../../assets/{}", $crate::TEST_MACRO_DIR, $project_name)
     }};
 }
 pub fn test_project_build_path(project_name: &str) -> String {
-    format!(
-        "{}/compiled_sway_projects/{}",
-        std::env::var_os("OUT_DIR").unwrap().to_str().unwrap(),
-        project_name
-    )
+    format!("{}/../../assets/{}", TEST_MACRO_DIR, project_name)
 }
 
 #[macro_export]
