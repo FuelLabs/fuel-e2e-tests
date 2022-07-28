@@ -1,23 +1,67 @@
 use crate::run_local_forc;
 use anyhow::bail;
+use async_recursion::async_recursion;
+use forc_pkg::manifest::Dependency;
+use forc_pkg::{Manifest, ManifestFile};
+use futures::future::join_all;
+use itertools::{chain, Itertools};
+use serde::{Deserializer, Serialize};
+use serde_json::Serializer;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::iter::once;
+use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use tokio::fs::read_dir;
 use tokio::io;
 use tokio_stream::wrappers::ReadDirStream;
 use tokio_stream::StreamExt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct SwayProject {
-    name: String,
     path: PathBuf,
+}
+
+impl Display for SwayProject {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CompiledSwayProject {
+    project: SwayProject,
+    target_dir: PathBuf,
+}
+
+impl CompiledSwayProject {
+    pub fn new(project: SwayProject, target_dir: PathBuf) -> CompiledSwayProject {
+        CompiledSwayProject {
+            project,
+            target_dir,
+        }
+    }
+
+    pub fn project(&self) -> &SwayProject {
+        &self.project
+    }
+
+    pub async fn source_files(&self) -> io::Result<Vec<FileMetadata>> {
+        self.project.source_files().await
+    }
+    pub async fn build_files(&self) -> io::Result<Vec<FileMetadata>> {
+        let build_dir_entries = ReadDirStream::new(read_dir(&self.target_dir).await?)
+            .collect::<io::Result<Vec<_>>>()
+            .await?;
+
+        let build_files = build_dir_entries.into_iter().map(|entry| entry.path());
+
+        read_metadata(build_files).await
+    }
 }
 
 #[derive(Debug)]
 pub struct CompilationError {
-    pub project_name: String,
+    pub project: SwayProject,
     pub reason: String,
 }
 
@@ -26,7 +70,8 @@ impl Display for CompilationError {
         write!(
             f,
             "Project '{:?}' failed to compile! Reason: {}",
-            self.project_name, self.reason
+            self.project.name(),
+            self.reason
         )
     }
 }
@@ -41,39 +86,106 @@ impl SwayCompiler {
     }
 
     pub async fn build(&self, project: &SwayProject) -> Result<(), CompilationError> {
-        let build_dir = self.target_dir.join(project.name());
+        let build_dir = self.prepare_project_dir(project).await?;
+
         run_local_forc(project.path(), &build_dir)
             .await
             .map_err(|err| CompilationError {
-                project_name: project.name().to_string(),
+                project: project.clone(),
                 reason: err.to_string(),
             })?;
 
         Ok(())
     }
+
+    async fn prepare_project_dir(
+        &self,
+        project: &SwayProject,
+    ) -> Result<PathBuf, CompilationError> {
+        let build_dir = self.target_dir.join(project.name());
+        if build_dir.exists() {
+            tokio::fs::remove_dir_all(&build_dir)
+                .await
+                .map_err(|_| CompilationError {
+                    project: project.clone(),
+                    reason: format!(
+                        "Could not remove existing target dir for project '{build_dir:?}'"
+                    ),
+                })?;
+        }
+
+        Ok(build_dir)
+    }
+}
+
+pub struct FileMetadata {
+    pub path: PathBuf,
+    pub modified: SystemTime,
+}
+
+pub async fn paths_in_dir(dir: &Path) -> io::Result<Vec<PathBuf>> {
+    let build_dir_entries = ReadDirStream::new(read_dir(dir).await?)
+        .collect::<io::Result<Vec<_>>>()
+        .await?;
+
+    Ok(build_dir_entries
+        .into_iter()
+        .map(|entry| entry.path())
+        .collect())
+}
+
+pub async fn read_metadata<T>(chain: T) -> Result<Vec<FileMetadata>, io::Error>
+where
+    T: IntoIterator<Item = PathBuf>,
+{
+    let project_files = chain
+        .into_iter()
+        .map(|path| async move {
+            let modified = tokio::fs::metadata(&path).await?.modified()?;
+            Ok::<FileMetadata, io::Error>(FileMetadata { path, modified })
+        })
+        .collect::<Vec<_>>();
+
+    join_all(project_files)
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
 }
 
 impl SwayProject {
-    fn new(path: &Path) -> anyhow::Result<SwayProject> {
+    pub fn new<T: AsRef<Path> + Debug>(path: &T) -> anyhow::Result<SwayProject> {
+        let path = path.as_ref();
+
         if !path.join("Forc.toml").is_file() {
             bail!("{:?} does not contain a Forc.lock", path)
         }
 
         let path = path.canonicalize()?;
-        let os_filename = path.file_name().expect(
-            "Will not fail since we've canonicalized the path and thus it won't end in '..'",
-        );
-        let utf8_filename = os_filename
-            .to_str()
-            .expect("Don't see how a dir entry can have non utf-8 chars")
-            .to_string();
 
-        Ok(SwayProject {
-            name: utf8_filename,
-            path,
-        })
+        Ok(SwayProject { path })
     }
 
+    pub async fn deps(&self) -> anyhow::Result<Vec<SwayProject>> {
+        let manifest = ManifestFile::from_dir(&self.path, "UNUSED")?;
+
+        Ok(manifest
+            .deps()
+            .filter_map(|(name, _)| manifest.dep_path(name))
+            .map(|path| SwayProject::new(&path).unwrap())
+            .collect())
+    }
+
+    pub async fn checksum(&self) -> anyhow::Result<u32> {
+        let mut vec = self.source_files().await?;
+        vec.sort_by(|left, right| left.path.cmp(&right.path));
+
+        let to_track = vec
+            .into_iter()
+            .map(|file| format!("{:?}:{:?}", file.path, file.modified))
+            .join("\n");
+
+        Ok(crc32fast::hash(to_track.as_ref()))
+    }
     pub async fn discover_projects(dir: &Path) -> anyhow::Result<Vec<SwayProject>> {
         let dir_entries = ReadDirStream::new(read_dir(dir).await?)
             .collect::<io::Result<Vec<_>>>()
@@ -94,23 +206,37 @@ impl SwayProject {
         &self.path
     }
 
-    pub fn name(&self) -> &str {
-        &self.name
+    pub fn name(&self) -> String {
+        self.path
+            .file_name()
+            .expect(
+                "Will not fail since we've canonicalized the path and thus it won't end in '..'",
+            )
+            .to_str()
+            .expect("Don't see how a dir entry can have non utf-8 chars")
+            .to_string()
     }
 
-    pub async fn files(&self) -> anyhow::Result<Vec<PathBuf>> {
+    pub async fn source_files(&self) -> io::Result<Vec<FileMetadata>> {
         let source_entries = ReadDirStream::new(read_dir(self.path.join("src")).await?)
             .collect::<io::Result<Vec<_>>>()
             .await?;
 
-        let files = source_entries
+        let all_source_files = source_entries
             .into_iter()
-            .filter(|entry| matches!(entry.path().extension(), Some(ext) if ext == "sw"))
             .map(|entry| entry.path())
-            .chain(once(self.path.join("Forc.toml")))
-            .collect();
+            .filter(|path| matches!(path.extension(), Some(ext) if ext == "sw"))
+            .chain(self.forc_files().into_iter());
 
-        Ok(files)
+        read_metadata(all_source_files).await
+    }
+
+    fn forc_files(&self) -> Vec<PathBuf> {
+        ["Forc.lock", "Forc.toml"]
+            .into_iter()
+            .map(|filename| self.path.join(filename))
+            .filter(|path| path.exists())
+            .collect()
     }
 }
 

@@ -5,3 +5,5 @@ license = "Apache-2.0"
 name = "transaction_block_height"
 
 [dependencies]
+some_lib = { path = "../some_lib" }
+deeper_lib = { path = "../deeper_lib" }

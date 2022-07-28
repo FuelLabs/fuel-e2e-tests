@@ -1,5 +1,5 @@
 use crate::build_local_forc;
-use crate::sway::{CompilationError, SwayCompiler, SwayProject};
+use crate::sway::{CompilationError, FileMetadata, SwayCompiler, SwayProject};
 use anyhow::{anyhow, bail};
 use futures::future::join_all;
 use std::path::{Path, PathBuf};
@@ -52,10 +52,10 @@ macro_rules! env_path {
 
 pub async fn discover_all_files_related_to_projects(
     projects: &[SwayProject],
-) -> anyhow::Result<Vec<PathBuf>> {
+) -> anyhow::Result<Vec<FileMetadata>> {
     let files_to_track = projects
         .iter()
-        .map(|project| async move { project.files().await })
+        .map(|project| async move { project.source_files().await })
         .collect::<Vec<_>>();
 
     let files_per_project = join_all(files_to_track).await;
