@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use async_recursion::async_recursion;
-use futures::future::join_all;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,6 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::io;
+use tokio_stream::StreamExt;
 use xtask::env_path;
 use xtask::sway::{paths_in_dir, read_metadata, FileMetadata, SwayProject};
 use xtask::utils::compile_sway_projects;
@@ -291,21 +291,15 @@ async fn main() -> Result<(), anyhow::Error> {
 
 async fn fingerprint_projects(
     projects: Vec<SwayProject>,
-    fingerprinter: &Arc<Fingerprinter>,
+    fingerprinter: &Fingerprinter,
 ) -> anyhow::Result<HashMap<SwayProject, ProjectFingerprint>> {
-    let futures = projects
-        .into_iter()
-        .map(|project| {
-            let fingerprinter = Arc::clone(fingerprinter);
-            async move {
-                let fingerprint = fingerprinter.fingerprint(&project).await?;
-                Ok((project, fingerprint))
-            }
+    let pairs = tokio_stream::iter(projects.into_iter())
+        .then(|project| async move {
+            let fingerprint = fingerprinter.fingerprint(&project).await?;
+            Ok::<(SwayProject, ProjectFingerprint), anyhow::Error>((project, fingerprint))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()
+        .await?;
 
-    join_all(futures)
-        .await
-        .into_iter()
-        .collect::<Result<HashMap<_, _>, _>>()
+    Ok(pairs.into_iter().collect())
 }

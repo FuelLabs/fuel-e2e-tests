@@ -1,9 +1,9 @@
 use crate::build_local_forc;
 use crate::sway::{CompilationError, FileMetadata, SwayCompiler, SwayProject};
-use anyhow::{anyhow, bail};
-use futures::future::join_all;
+use anyhow::anyhow;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
     projects: &[SwayProject],
@@ -15,17 +15,15 @@ pub async fn compile_sway_projects(
 
     let compiler = Arc::new(SwayCompiler::new(target_dir));
 
-    let futures = projects
-        .iter()
-        .map(|project| {
+    let compilation_results = tokio_stream::iter(projects)
+        .then(|project| {
             let compiler = Arc::clone(&compiler);
             async move { compiler.build(project).await }
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+        .await;
 
-    let results = join_all(futures).await;
-
-    let errors = results
+    let errors = compilation_results
         .into_iter()
         .filter_map(|result| result.err())
         .collect::<Vec<_>>();
@@ -53,27 +51,10 @@ macro_rules! env_path {
 pub async fn discover_all_files_related_to_projects(
     projects: &[SwayProject],
 ) -> anyhow::Result<Vec<FileMetadata>> {
-    let files_to_track = projects
-        .iter()
-        .map(|project| async move { project.source_files().await })
-        .collect::<Vec<_>>();
+    let files_per_project = tokio_stream::iter(projects)
+        .then(|project| project.source_files())
+        .collect::<Result<Vec<_>, _>>()
+        .await?;
 
-    let files_per_project = join_all(files_to_track).await;
-
-    if files_per_project.iter().any(|files| files.is_err()) {
-        let errors: Vec<_> = files_per_project
-            .into_iter()
-            .filter_map(|files| files.err())
-            .collect();
-        bail!(
-            "Errors ocurred while scanning for project files: {:?}",
-            errors
-        )
-    }
-
-    Ok(files_per_project
-        .into_iter()
-        .filter_map(|r| r.ok())
-        .flatten()
-        .collect::<Vec<_>>())
+    Ok(files_per_project.into_iter().flatten().collect())
 }

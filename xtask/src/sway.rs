@@ -1,12 +1,7 @@
 use crate::run_local_forc;
 use anyhow::bail;
-use async_recursion::async_recursion;
-use forc_pkg::manifest::Dependency;
-use forc_pkg::{Manifest, ManifestFile};
-use futures::future::join_all;
-use itertools::{chain, Itertools};
-use serde::{Deserializer, Serialize};
-use serde_json::Serializer;
+use forc_pkg::ManifestFile;
+use itertools::Itertools;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
@@ -138,18 +133,13 @@ pub async fn read_metadata<T>(chain: T) -> Result<Vec<FileMetadata>, io::Error>
 where
     T: IntoIterator<Item = PathBuf>,
 {
-    let project_files = chain
-        .into_iter()
-        .map(|path| async move {
+    tokio_stream::iter(chain)
+        .then(|path| async move {
             let modified = tokio::fs::metadata(&path).await?.modified()?;
             Ok::<FileMetadata, io::Error>(FileMetadata { path, modified })
         })
-        .collect::<Vec<_>>();
-
-    join_all(project_files)
+        .collect()
         .await
-        .into_iter()
-        .collect::<Result<Vec<_>, _>>()
 }
 
 impl SwayProject {
