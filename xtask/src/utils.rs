@@ -2,22 +2,21 @@ use crate::build_local_forc;
 use crate::sway::{CompilationError, FileMetadata, SwayCompiler, SwayProject};
 use anyhow::anyhow;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
-    projects: &[SwayProject],
+    projects: &[&SwayProject],
     target_dir: &Path,
 ) -> Result<(), Vec<CompilationError>> {
     build_local_forc()
         .await
         .expect("Failed to build local forc! Investigate!");
 
-    let compiler = Arc::new(SwayCompiler::new(target_dir));
+    let compiler = SwayCompiler::new(target_dir);
 
     let compilation_results = tokio_stream::iter(projects)
         .then(|project| {
-            let compiler = Arc::clone(&compiler);
+            let compiler = &compiler;
             async move { compiler.build(project).await }
         })
         .collect::<Vec<_>>()
