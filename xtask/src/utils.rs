@@ -1,13 +1,14 @@
-use crate::build_local_forc;
-use crate::sway::{CompilationError, FileMetadata, SwayCompiler, SwayProject};
 use anyhow::anyhow;
+use build_utils::commands::build_local_forc;
+use build_utils::metadata::FileMetadata;
+use build_utils::sway::{CompilationError, SwayCompiler, SwayProject};
 use std::path::{Path, PathBuf};
 use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
     projects: &[&SwayProject],
     target_dir: &Path,
-) -> Result<(), Vec<CompilationError>> {
+) -> anyhow::Result<Vec<CompilationError>> {
     build_local_forc()
         .await
         .expect("Failed to build local forc! Investigate!");
@@ -27,11 +28,7 @@ pub async fn compile_sway_projects(
         .filter_map(|result| result.err())
         .collect::<Vec<_>>();
 
-    if !errors.is_empty() {
-        Err(errors)
-    } else {
-        Ok(())
-    }
+    Ok(errors)
 }
 
 pub fn env_path(env: &str) -> anyhow::Result<PathBuf> {

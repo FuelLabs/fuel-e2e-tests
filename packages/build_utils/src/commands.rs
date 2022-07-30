@@ -6,10 +6,7 @@ use std::path::Path;
 use std::process::Stdio;
 use tokio::process::Command;
 
-pub mod sway;
-pub mod utils;
-
-pub async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
+async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
     command: &str,
     args: &[T],
 ) -> anyhow::Result<()> {
@@ -31,23 +28,6 @@ pub async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
     Ok(())
 }
 
-pub async fn checked_command_fwd_output<T: AsRef<OsStr> + Debug>(
-    command: &str,
-    args: &[T],
-) -> anyhow::Result<()> {
-    let status = Command::new(command)
-        .args(args)
-        .kill_on_drop(true)
-        .status()
-        .await?;
-
-    if !status.success() {
-        bail!("Running {command} {args:?} failed. Status: {status:?}");
-    }
-
-    Ok(())
-}
-
 pub async fn build_local_forc() -> anyhow::Result<()> {
     checked_command_drop_output(
         env!("CARGO"),
@@ -56,7 +36,7 @@ pub async fn build_local_forc() -> anyhow::Result<()> {
     .await
 }
 
-pub async fn run_local_forc(project_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
+pub(crate) async fn run_local_forc(project_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
     checked_command_drop_output(
         env!("CARGO"),
         &[
