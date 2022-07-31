@@ -1,8 +1,7 @@
-use anyhow::anyhow;
 use build_utils::commands::build_local_forc;
-use build_utils::metadata::FileMetadata;
-use build_utils::sway::{CompilationError, SwayCompiler, SwayProject};
-use std::path::{Path, PathBuf};
+use build_utils::sway::compiler::{CompilationError, SwayCompiler};
+use build_utils::sway::project::SwayProject;
+use std::path::Path;
 use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
@@ -31,26 +30,9 @@ pub async fn compile_sway_projects(
     Ok(errors)
 }
 
-pub fn env_path(env: &str) -> anyhow::Result<PathBuf> {
-    Ok(std::env::var_os(env)
-        .ok_or_else(|| anyhow!("Env variable '{}' not found!", env))?
-        .into())
-}
-
 #[macro_export]
 macro_rules! env_path {
     ($path:literal) => {{
         std::path::Path::new(env!($path))
     }};
-}
-
-pub async fn discover_all_files_related_to_projects(
-    projects: &[SwayProject],
-) -> anyhow::Result<Vec<FileMetadata>> {
-    let files_per_project = tokio_stream::iter(projects)
-        .then(|project| project.source_files())
-        .collect::<Result<Vec<_>, _>>()
-        .await?;
-
-    Ok(files_per_project.into_iter().flatten().collect())
 }

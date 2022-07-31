@@ -1,5 +1,5 @@
 use crate::fingerprint::{Fingerprint, FingerprintCalculator};
-use crate::sway::SwayProject;
+use crate::sway::project::SwayProject;
 use async_recursion::async_recursion;
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
@@ -22,11 +22,11 @@ impl<'a> DirtDetector<'a> {
 
     #[async_recursion]
     async fn is_dirty(&self, project: &SwayProject) -> anyhow::Result<bool> {
-        let fingerprints_changed = match self.storage_fingerprints.get(project).as_ref() {
+        let fingerprints_changed = match self.storage_fingerprints.get(project) {
             None => true,
             Some(storage_fingerprint) => {
                 let fingerprint = self.fingerprint_calculator.fingerprint(project).await?;
-                fingerprint != **storage_fingerprint
+                fingerprint != *storage_fingerprint
             }
         };
 

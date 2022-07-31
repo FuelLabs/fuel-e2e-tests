@@ -1,5 +1,5 @@
 use crate::metadata::FileMetadata;
-use crate::sway::SwayProject;
+use crate::sway::project::SwayProject;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -29,15 +29,21 @@ pub fn load_stored_fingerprints<T: AsRef<Path>>(
         return Ok(Default::default());
     }
 
-    serde_json::from_reader::<_, Vec<StoredFingerprint>>(fs::File::open(path)?)?
-        .into_iter()
-        .map(
-            |StoredFingerprint {
-                 project_path,
-                 fingerprint,
-             }| SwayProject::new(&project_path).map(|project| (project, fingerprint)),
-        )
-        .collect::<Result<HashMap<SwayProject, Fingerprint>, _>>()
+    Ok(
+        serde_json::from_reader::<_, Vec<StoredFingerprint>>(fs::File::open(path)?)?
+            .into_iter()
+            .filter_map(
+                |StoredFingerprint {
+                     project_path,
+                     fingerprint,
+                 }| {
+                    SwayProject::new(&project_path)
+                        .map(|project| (project, fingerprint))
+                        .ok()
+                },
+            )
+            .collect::<HashMap<SwayProject, Fingerprint>>(),
+    )
 }
 
 impl FingerprintCalculator {

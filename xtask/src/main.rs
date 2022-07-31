@@ -1,11 +1,11 @@
-pub mod sway;
 pub mod utils;
 
 use build_utils::dirt_detector::DirtDetector;
 use build_utils::fingerprint::{
     load_stored_fingerprints, FingerprintCalculator, StoredFingerprint,
 };
-use build_utils::sway::{CompilationError, SwayProject};
+use build_utils::sway::compiler::CompilationError;
+use build_utils::sway::project::SwayProject;
 use itertools::Itertools;
 use std::fs;
 use std::path::{Path, PathBuf};

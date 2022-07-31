@@ -21,14 +21,14 @@ pub(crate) async fn paths_in_dir(dir: &Path) -> io::Result<Vec<PathBuf>> {
         .collect())
 }
 
-pub(crate) async fn read_metadata<T>(chain: T) -> Result<Vec<FileMetadata>, io::Error>
+pub(crate) async fn read_metadata<T>(paths: T) -> Result<Vec<FileMetadata>, io::Error>
 where
     T: IntoIterator<Item = PathBuf>,
 {
-    tokio_stream::iter(chain)
+    tokio_stream::iter(paths)
         .then(|path| async move {
             let modified = tokio::fs::metadata(&path).await?.modified()?;
-            Ok::<FileMetadata, io::Error>(FileMetadata { path, modified })
+            Ok::<_, io::Error>(FileMetadata { path, modified })
         })
         .collect()
         .await
