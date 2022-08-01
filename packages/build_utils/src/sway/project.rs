@@ -93,12 +93,12 @@ impl SwayProject {
 
 #[cfg(test)]
 mod tests {
+    use crate::metadata::FileMetadata;
     use crate::sway::project::SwayProject;
     use std::collections::HashSet;
     use std::fmt::Debug;
     use std::fs::File;
     use std::hash::Hash;
-    use std::iter;
     use std::path::{Path, PathBuf};
     use tempfile::tempdir;
 
@@ -189,30 +189,91 @@ mod tests {
 
     #[tokio::test]
     async fn will_only_detect_sw_source_files() -> anyhow::Result<()> {
+        // given
         let workdir = tempdir()?;
-        let project_dir = workdir.path().join("some_sway_project");
+        let project_dir = workdir.path().join("sut");
 
-        let some_sway_project = generate_sway_project(&project_dir, "")?;
+        let sut = generate_sway_project(&project_dir, "")?;
 
         let valid_source_files =
-            create_files(&project_dir, &["src/main.sw", "src/another_source.sw"])?;
+            ensure_files_exist(&project_dir, &["src/main.sw", "src/another_source.sw"])?;
 
-        let not_source_files = create_files(&project_dir, &["src/some_random_file.txt"])?;
+        let not_source_files = ensure_files_exist(
+            &project_dir,
+            &["src/some_random_file.txt", "some_root_file.txt"],
+        )?;
 
-        let detected_source_files = some_sway_project
-            .source_files()
-            .await?
-            .into_iter()
-            .map(|metadata| metadata.path)
-            .collect::<Vec<_>>();
+        // when
+        let detected_source_files = extract_source_files(&sut).await?;
 
+        // then
         assert_contains(&detected_source_files, &valid_source_files);
         assert_doesnt_contain(&detected_source_files, &not_source_files);
 
         Ok(())
     }
 
-    fn create_files(basedir: &Path, relative_paths: &[&str]) -> anyhow::Result<Vec<PathBuf>> {
+    #[tokio::test]
+    async fn will_detect_forc_files() -> anyhow::Result<()> {
+        // given
+        let workdir = tempdir()?;
+        let project_dir = workdir.path().join("sut");
+
+        let sut = generate_sway_project(&project_dir, "")?;
+        let forc_files = ensure_files_exist(&project_dir, &["Forc.lock", "Forc.toml"])?;
+
+        // when
+        let detected_source_files = extract_source_files(&sut).await?;
+
+        // then
+        assert_contains(&detected_source_files, &forc_files);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn source_files_will_contain_correct_metadata() -> anyhow::Result<()> {
+        // given
+        let workdir = tempdir()?;
+        let project_dir = workdir.path().join("sut");
+
+        let sut = generate_sway_project(&project_dir, "")?;
+        let expected_source_files =
+            ensure_files_exist(&project_dir, &["src/main.sw", "Forc.toml"])?;
+
+        let expected_mtimes = expected_source_files
+            .iter()
+            .cloned()
+            .map(|path| {
+                let mtime = std::fs::metadata(&path).unwrap().modified().unwrap();
+                (path, mtime)
+            })
+            .collect::<Vec<_>>();
+
+        // when
+        let detected_source_files = sut.source_files().await?;
+
+        // then
+        let actual_mtimes = detected_source_files
+            .into_iter()
+            .map(|FileMetadata { path, modified }| (path, modified))
+            .collect::<Vec<_>>();
+
+        assert_contain_same_elements(&expected_mtimes, &actual_mtimes);
+
+        Ok(())
+    }
+
+    async fn extract_source_files(some_sway_project: &SwayProject) -> anyhow::Result<Vec<PathBuf>> {
+        Ok(some_sway_project
+            .source_files()
+            .await?
+            .into_iter()
+            .map(|metadata| metadata.path)
+            .collect())
+    }
+
+    fn ensure_files_exist(basedir: &Path, relative_paths: &[&str]) -> anyhow::Result<Vec<PathBuf>> {
         relative_paths
             .iter()
             .map(|rel_path| {
