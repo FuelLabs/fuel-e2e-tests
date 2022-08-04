@@ -12,12 +12,54 @@ use tokio_stream::StreamExt;
 pub struct SwayProject {
     path: PathBuf,
 }
+impl From<CompiledSwayProject> for SwayProject {
+    fn from(compiled_project: CompiledSwayProject) -> Self {
+        compiled_project.project
+    }
+}
+
+async fn list_folders_in(dir: &Path) -> anyhow::Result<Vec<PathBuf>> {
+    let dir_entries = ReadDirStream::new(read_dir(dir).await?)
+        .collect::<io::Result<Vec<_>>>()
+        .await?;
+
+    Ok(dir_entries
+        .into_iter()
+        .map(|dir_entry| dir_entry.path())
+        .filter(|path| path.is_dir())
+        .collect())
+}
+
+pub async fn discover_projects(dir: &Path) -> anyhow::Result<Vec<SwayProject>> {
+    list_folders_in(dir)
+        .await?
+        .into_iter()
+        .filter(|entry| contains_forc_toml(entry))
+        .map(|dir| SwayProject::new(&dir))
+        .collect::<anyhow::Result<Vec<_>>>()
+}
+
+pub async fn discover_compiled_projects(
+    projects: &[SwayProject],
+    target_dir: &Path,
+) -> anyhow::Result<Vec<CompiledSwayProject>> {
+    projects
+        .iter()
+        .map(|project| (project, target_dir.join(project.name())))
+        .filter(|(_, expected_build_dir)| expected_build_dir.is_dir())
+        .map(|(project, build_dir)| CompiledSwayProject::new(project.clone(), &build_dir))
+        .collect()
+}
+
+fn contains_forc_toml(dir: &Path) -> bool {
+    dir.join("Forc.toml").is_file()
+}
 
 impl SwayProject {
     pub fn new<T: AsRef<Path> + Debug + ?Sized>(path: &T) -> anyhow::Result<SwayProject> {
         let path = path.as_ref();
 
-        if !path.join("Forc.toml").is_file() {
+        if !contains_forc_toml(path) {
             bail!("{:?} does not contain a Forc.toml", path)
         }
 
@@ -34,22 +76,6 @@ impl SwayProject {
             .filter_map(|(name, _)| manifest.dep_path(name))
             .map(|path| SwayProject::new(&path))
             .collect()
-    }
-
-    pub async fn discover_projects(dir: &Path) -> anyhow::Result<Vec<SwayProject>> {
-        let dir_entries = ReadDirStream::new(read_dir(dir).await?)
-            .collect::<io::Result<Vec<_>>>()
-            .await?;
-
-        dir_entries
-            .into_iter()
-            .filter(|entry| Self::is_sway_project(&entry.path()))
-            .map(|dir| SwayProject::new(&dir.path()))
-            .collect::<anyhow::Result<Vec<_>>>()
-    }
-
-    fn is_sway_project(dir: &Path) -> bool {
-        dir.join("Forc.toml").is_file()
     }
 
     pub fn path(&self) -> &Path {
@@ -91,10 +117,46 @@ impl SwayProject {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CompiledSwayProject {
+    pub project: SwayProject,
+    pub target_path: PathBuf,
+}
+
+impl AsRef<SwayProject> for CompiledSwayProject {
+    fn as_ref(&self) -> &SwayProject {
+        &self.project
+    }
+}
+
+impl CompiledSwayProject {
+    pub fn new(project: SwayProject, target_path: &Path) -> anyhow::Result<CompiledSwayProject> {
+        let target_path = target_path.canonicalize()?;
+
+        if !target_path.is_dir() {
+            bail!("Failed to construct a CompiledSwayProject! {target_path:?} is not a directory!")
+        }
+
+        Ok(CompiledSwayProject {
+            project,
+            target_path,
+        })
+    }
+
+    pub(crate) async fn build_files(&self) -> io::Result<Vec<FileMetadata>> {
+        let build_files = crate::metadata::paths_in_dir(&self.target_path).await?;
+
+        read_metadata(build_files).await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::metadata::FileMetadata;
-    use crate::sway::project::SwayProject;
+    use crate::sway::project::{
+        discover_compiled_projects, discover_projects, CompiledSwayProject, SwayProject,
+    };
+
     use std::collections::HashSet;
     use std::fmt::Debug;
     use std::fs::File;
@@ -131,21 +193,22 @@ mod tests {
         let workdir_path = workdir.path();
 
         let sut = generate_sway_project(
-            &workdir_path.join("main_project"),
+            workdir_path,
+            "main_project",
             r#"
                 [project]
                 authors = ["Fuel Labs <contact@fuel.sh>"]
                 entry = "main.sw"
                 license = "Apache-2.0"
-                name = "type_inside_enum"
+                name = "main_project"
 
                 [dependencies]
                 dep1 = { path = "../dep1" }
                 dep2 = { path = "../dep2" }
         "#,
         )?;
-        let project_dep1 = generate_sway_project(&workdir_path.join("dep1"), "")?;
-        let project_dep2 = generate_sway_project(&workdir_path.join("dep2"), "")?;
+        let project_dep1 = generate_sway_project(workdir_path, "dep1", "")?;
+        let project_dep2 = generate_sway_project(workdir_path, "dep2", "")?;
 
         // when
         let deps = sut.deps().await?;
@@ -155,21 +218,53 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn will_discover_compiled_sway_projects() -> anyhow::Result<()> {
+        // given
+        let workdir = tempdir()?;
+        let workdir_path = workdir.path();
+
+        let src_dir = workdir_path.join("sources");
+        std::fs::create_dir(&src_dir)?;
+
+        let build_dir = workdir_path.join("build");
+        std::fs::create_dir(&build_dir)?;
+
+        let compiled_project =
+            generate_compiled_sway_project(&src_dir, "a_compiled_project", "", &build_dir)?;
+
+        let non_compiled_project = generate_sway_project(&src_dir, "a_non_compiled_project", "")?;
+        std::fs::create_dir(&workdir_path.join("a_random_folder"))?;
+
+        // when
+        let projects = discover_compiled_projects(
+            &[compiled_project.project.clone(), non_compiled_project],
+            &build_dir,
+        )
+        .await?;
+
+        // then
+        assert_contain_same_elements(&projects, &vec![compiled_project]);
+
+        Ok(())
+    }
+
     #[tokio::test]
     async fn will_discover_sway_projects() -> anyhow::Result<()> {
         // given
         let workdir = tempdir()?;
         let workdir_path = workdir.path();
 
-        let real_project_1 = generate_sway_project(&workdir_path.join("real_project_1"), "")?;
-        let real_project_2 = generate_sway_project(&workdir_path.join("real_project_2"), "")?;
-        std::fs::create_dir(&workdir_path.join("some_folder"))?;
+        let a_project = generate_sway_project(workdir_path, "a_project", "")?;
+
+        std::fs::create_dir(&workdir_path.join("a_random_folder"))?;
 
         // when
-        let projects = SwayProject::discover_projects(workdir_path).await?;
+        let projects = discover_projects(workdir_path).await?;
 
         // then
-        assert_contain_same_elements(&projects, &vec![real_project_1, real_project_2]);
+        assert_contain_same_elements(&projects, &vec![a_project]);
 
         Ok(())
     }
@@ -178,7 +273,7 @@ mod tests {
     fn determine_project_name_from_non_canonical_path() -> anyhow::Result<()> {
         let workdir = tempdir()?;
         let workdir_path = workdir.path();
-        let sut = generate_sway_project(&workdir_path.join("./a_dir/a_deeper_dir/.."), "")?;
+        let sut = generate_sway_project(workdir_path, "./a_dir/a_deeper_dir/..", "")?;
 
         let project_name = sut.name();
 
@@ -191,15 +286,14 @@ mod tests {
     async fn will_only_detect_sw_source_files() -> anyhow::Result<()> {
         // given
         let workdir = tempdir()?;
-        let project_dir = workdir.path().join("sut");
-
-        let sut = generate_sway_project(&project_dir, "")?;
+        let sut = generate_sway_project(workdir.path(), "project", "")?;
+        let project_dir = sut.path();
 
         let valid_source_files =
-            ensure_files_exist(&project_dir, &["src/main.sw", "src/another_source.sw"])?;
+            ensure_files_exist(project_dir, &["src/main.sw", "src/another_source.sw"])?;
 
         let not_source_files = ensure_files_exist(
-            &project_dir,
+            project_dir,
             &["src/some_random_file.txt", "some_root_file.txt"],
         )?;
 
@@ -217,10 +311,9 @@ mod tests {
     async fn will_detect_forc_files() -> anyhow::Result<()> {
         // given
         let workdir = tempdir()?;
-        let project_dir = workdir.path().join("sut");
 
-        let sut = generate_sway_project(&project_dir, "")?;
-        let forc_files = ensure_files_exist(&project_dir, &["Forc.lock", "Forc.toml"])?;
+        let sut = generate_sway_project(workdir.path(), "project", "")?;
+        let forc_files = ensure_files_exist(sut.path(), &["Forc.lock", "Forc.toml"])?;
 
         // when
         let detected_source_files = extract_source_files(&sut).await?;
@@ -235,11 +328,9 @@ mod tests {
     async fn source_files_will_contain_correct_metadata() -> anyhow::Result<()> {
         // given
         let workdir = tempdir()?;
-        let project_dir = workdir.path().join("sut");
 
-        let sut = generate_sway_project(&project_dir, "")?;
-        let expected_source_files =
-            ensure_files_exist(&project_dir, &["src/main.sw", "Forc.toml"])?;
+        let sut = generate_sway_project(workdir.path(), "", "")?;
+        let expected_source_files = ensure_files_exist(sut.path(), &["src/main.sw", "Forc.toml"])?;
 
         let expected_mtimes = expected_source_files
             .iter()
@@ -334,14 +425,31 @@ mod tests {
     }
 
     fn generate_sway_project(
-        project_dir: &Path,
+        parent_dir: &Path,
+        project_name: &str,
         forc_toml_contents: &str,
     ) -> anyhow::Result<SwayProject> {
-        std::fs::create_dir_all(project_dir)?;
-        std::fs::create_dir(project_dir.join("src"))?;
+        let dir = parent_dir.join(project_name);
 
-        std::fs::write(project_dir.join("Forc.toml"), forc_toml_contents)?;
+        std::fs::create_dir_all(&dir)?;
+        std::fs::create_dir(dir.join("src"))?;
 
-        SwayProject::new(project_dir)
+        std::fs::write(dir.join("Forc.toml"), forc_toml_contents)?;
+
+        SwayProject::new(&dir)
+    }
+
+    fn generate_compiled_sway_project(
+        sources_dir: &Path,
+        project_name: &str,
+        forc_toml_contents: &str,
+        target_dir: &Path,
+    ) -> anyhow::Result<CompiledSwayProject> {
+        let project = generate_sway_project(sources_dir, project_name, forc_toml_contents)?;
+
+        let dir = target_dir.join(project_name);
+        std::fs::create_dir_all(&dir)?;
+
+        CompiledSwayProject::new(project, &dir)
     }
 }

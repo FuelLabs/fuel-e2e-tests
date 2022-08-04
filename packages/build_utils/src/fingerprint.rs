@@ -1,14 +1,15 @@
 use crate::metadata::FileMetadata;
-use crate::sway::project::SwayProject;
+use crate::sway::project::{CompiledSwayProject, SwayProject};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StoredFingerprint {
-    pub project_path: PathBuf,
+    pub project_source: PathBuf,
+    pub project_build: PathBuf,
     pub fingerprint: Fingerprint,
 }
 
@@ -18,13 +19,11 @@ pub struct Fingerprint {
     pub build: u32,
 }
 
-pub struct FingerprintCalculator {
-    target_dir: PathBuf,
-}
+pub struct FingerprintCalculator;
 
 pub fn load_stored_fingerprints<T: AsRef<Path>>(
     path: T,
-) -> anyhow::Result<HashMap<SwayProject, Fingerprint>> {
+) -> anyhow::Result<HashMap<CompiledSwayProject, Fingerprint>> {
     if !path.as_ref().exists() {
         return Ok(Default::default());
     }
@@ -34,28 +33,26 @@ pub fn load_stored_fingerprints<T: AsRef<Path>>(
             .into_iter()
             .filter_map(
                 |StoredFingerprint {
-                     project_path,
+                     project_source,
+                     project_build,
                      fingerprint,
                  }| {
-                    SwayProject::new(&project_path)
-                        .map(|project| (project, fingerprint))
+                    SwayProject::new(&project_source)
+                        .and_then(|project| CompiledSwayProject::new(project, &project_build))
+                        .map(|compiled_project| (compiled_project, fingerprint))
                         .ok()
                 },
             )
-            .collect::<HashMap<SwayProject, Fingerprint>>(),
+            .collect(),
     )
 }
 
 impl FingerprintCalculator {
-    pub fn new(target_dir: PathBuf) -> Self {
-        Self { target_dir }
-    }
-
-    pub async fn fingerprint(&self, project: &SwayProject) -> anyhow::Result<Fingerprint> {
-        let source_files = project.source_files().await?;
+    pub async fn fingerprint(project: &CompiledSwayProject) -> anyhow::Result<Fingerprint> {
+        let source_files = project.project.source_files().await?;
         let source_fingerprint = Self::fingerprint_files(source_files);
 
-        let build_files = self.build_files(project).await?;
+        let build_files = project.build_files().await?;
         let build_fingerprint = Self::fingerprint_files(build_files);
 
         Ok(Fingerprint {
@@ -73,17 +70,5 @@ impl FingerprintCalculator {
             .join("\n");
 
         crc32fast::hash(filename_mtime_pairs.as_bytes())
-    }
-
-    async fn build_files(&self, project: &SwayProject) -> io::Result<Vec<FileMetadata>> {
-        let project_build_dir = self.target_dir.join(project.name());
-
-        if !project_build_dir.exists() {
-            return Ok(vec![]);
-        }
-
-        let build_files = crate::metadata::paths_in_dir(&project_build_dir).await?;
-
-        crate::metadata::read_metadata(build_files).await
     }
 }

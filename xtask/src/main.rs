@@ -5,8 +5,8 @@ use build_utils::fingerprint::{
     load_stored_fingerprints, FingerprintCalculator, StoredFingerprint,
 };
 use build_utils::sway::compiler::CompilationError;
-use build_utils::sway::project::SwayProject;
-use itertools::Itertools;
+use build_utils::sway::project::{discover_projects, CompiledSwayProject, SwayProject};
+use itertools::{chain, Itertools};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tokio::io;
@@ -23,43 +23,58 @@ async fn get_assets_dir(root_dir: &Path) -> io::Result<PathBuf> {
 async fn main() -> Result<(), anyhow::Error> {
     let xtask_dir = env_path!("CARGO_MANIFEST_DIR");
     let assets_dir = get_assets_dir(xtask_dir).await?;
-    let projects = SwayProject::discover_projects(&xtask_dir.join("../tests/tests")).await?;
+    let projects_dir = xtask_dir.join("../tests/tests");
 
-    let fingerprinter = FingerprintCalculator::new(assets_dir.clone());
+    let storage_path = Path::new("./storage.json");
 
-    let fingerprints_storage_path = Path::new("./storage.json");
-    let stored_fingerprints = load_stored_fingerprints(fingerprints_storage_path).unwrap();
-    let detector = DirtDetector::new(stored_fingerprints, &fingerprinter);
-
-    let dirty_projects = detector.filter_dirty(&projects).await?;
+    let (clean_projects, dirty_projects) =
+        detect_and_partition_projects(&projects_dir, storage_path).await?;
 
     announce_build_started(&dirty_projects);
 
-    let compilation_errors = compile_sway_projects(&dirty_projects, &assets_dir).await?;
+    let (successfully_compiled, compilation_errors) =
+        compile_sway_projects(&dirty_projects, &assets_dir).await?;
 
     announce_build_finished(&compilation_errors);
 
-    let successful_projects = filter_successful_projects(&projects, &compilation_errors);
-
     store_updated_fingerprints(
-        &fingerprinter,
-        &successful_projects,
-        fingerprints_storage_path,
+        chain!(&successfully_compiled, &clean_projects),
+        storage_path,
     )
     .await?;
 
     Ok(())
 }
 
-fn filter_successful_projects<'a>(
-    projects: &'a [SwayProject],
-    compilation_errs: &[CompilationError],
-) -> Vec<&'a SwayProject> {
-    let failed_projects: Vec<_> = compilation_errs.iter().map(|err| &err.project).collect();
+async fn detect_and_partition_projects(
+    projects_dir: &Path,
+    fingerprints_storage_path: &Path,
+) -> anyhow::Result<(Vec<CompiledSwayProject>, Vec<SwayProject>)> {
+    let stored_fingerprints = load_stored_fingerprints(fingerprints_storage_path).unwrap();
+
+    let detector = DirtDetector::new(stored_fingerprints);
+
+    let clean_projects = detector.get_clean_projects().await?;
+
+    let projects = discover_projects(projects_dir).await?;
+    let dirty_projects = filter_dirty_projects(projects, &clean_projects);
+
+    Ok((
+        clean_projects.into_iter().cloned().collect(),
+        dirty_projects,
+    ))
+}
+
+fn filter_dirty_projects<'a, T: IntoIterator<Item = &'a K>, K: AsRef<SwayProject> + 'a>(
+    projects: Vec<SwayProject>,
+    built_and_clean: T,
+) -> Vec<SwayProject> {
+    let built_and_clean: Vec<&SwayProject> =
+        built_and_clean.into_iter().map(|p| p.as_ref()).collect();
 
     projects
-        .iter()
-        .filter(|project| !failed_projects.contains(project))
+        .into_iter()
+        .filter(|p| !built_and_clean.contains(&p))
         .collect()
 }
 
@@ -74,9 +89,9 @@ fn announce_build_finished(compilation_errs: &[CompilationError]) {
     }
 }
 
-fn announce_build_started(project_to_build: &[&SwayProject]) {
-    if !project_to_build.is_empty() {
-        let project_list = project_to_build
+fn announce_build_started(projects_to_build: &[SwayProject]) {
+    if !projects_to_build.is_empty() {
+        let project_list = projects_to_build
             .iter()
             .map(|project| format!("- {}", project.name()))
             .join("\n");
@@ -84,32 +99,30 @@ fn announce_build_started(project_to_build: &[&SwayProject]) {
     }
 }
 
-async fn fingerprint_projects_for_storage(
-    projects: &[&SwayProject],
-    fingerprinter: &FingerprintCalculator,
-) -> anyhow::Result<Vec<StoredFingerprint>> {
-    tokio_stream::iter(projects)
-        .then(|project| async {
-            let fingerprint = fingerprinter.fingerprint(project).await?;
-            Ok(StoredFingerprint {
-                project_path: project.path().to_path_buf(),
-                fingerprint,
-            })
-        })
-        .collect()
-        .await
-}
-
-pub async fn store_updated_fingerprints<T: AsRef<Path>>(
-    fingerprinter: &FingerprintCalculator,
-    successful_projects: &[&SwayProject],
-    storage_file: T,
+pub async fn store_updated_fingerprints<'a, T: IntoIterator<Item = &'a CompiledSwayProject>>(
+    successful_projects: T,
+    storage_file: &Path,
 ) -> anyhow::Result<()> {
-    let fingerprints_to_store =
-        fingerprint_projects_for_storage(successful_projects, fingerprinter).await?;
+    let fingerprints_to_store = fingerprint_projects_for_storage(successful_projects).await?;
 
     let file = fs::File::create(storage_file)?;
     serde_json::to_writer_pretty(file, &fingerprints_to_store)?;
 
     Ok(())
+}
+
+async fn fingerprint_projects_for_storage<'a, T: IntoIterator<Item = &'a CompiledSwayProject>>(
+    projects: T,
+) -> anyhow::Result<Vec<StoredFingerprint>> {
+    tokio_stream::iter(projects.into_iter())
+        .then(|project| async {
+            let fingerprint = FingerprintCalculator::fingerprint(project).await?;
+            Ok(StoredFingerprint {
+                project_source: project.project.path().to_path_buf(),
+                project_build: project.target_path.to_path_buf(),
+                fingerprint,
+            })
+        })
+        .collect()
+        .await
 }

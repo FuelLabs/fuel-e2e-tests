@@ -30,7 +30,7 @@ impl SwayCompiler {
         }
     }
 
-    pub async fn build(&self, project: &SwayProject) -> Result<(), CompilationError> {
+    pub async fn build(&self, project: &SwayProject) -> Result<PathBuf, CompilationError> {
         let build_dir = self.prepare_project_dir(project).await?;
 
         commands::run_local_forc(project.path(), &build_dir)
@@ -40,7 +40,7 @@ impl SwayCompiler {
                 reason: err.to_string(),
             })?;
 
-        Ok(())
+        Ok(build_dir)
     }
 
     async fn prepare_project_dir(
