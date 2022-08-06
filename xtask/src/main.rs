@@ -32,16 +32,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
     announce_build_started(&dirty_projects);
 
-    let (successfully_compiled, compilation_errors) =
-        compile_sway_projects(&dirty_projects, &assets_dir).await?;
+    let (compiled, errors) = compile_sway_projects(&dirty_projects, &assets_dir).await?;
 
-    announce_build_finished(&compilation_errors);
+    announce_build_finished(&errors);
 
-    store_updated_fingerprints(
-        chain!(&successfully_compiled, &clean_projects),
-        storage_path,
-    )
-    .await?;
+    store_updated_fingerprints(chain!(&compiled, &clean_projects), storage_path).await?;
 
     Ok(())
 }
