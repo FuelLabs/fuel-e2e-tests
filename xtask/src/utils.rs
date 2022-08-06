@@ -6,7 +6,7 @@ use std::path::Path;
 use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
-    projects: &[SwayProject],
+    projects: Vec<SwayProject>,
     target_dir: &Path,
 ) -> anyhow::Result<(Vec<CompiledSwayProject>, Vec<CompilationError>)> {
     build_local_forc()
@@ -15,14 +15,14 @@ pub async fn compile_sway_projects(
 
     let compiler = SwayCompiler::new(target_dir);
 
-    let result = tokio_stream::iter(projects)
+    let result = tokio_stream::iter(projects.into_iter())
         .then(|project| {
             let compiler = &compiler;
             async move {
                 compiler
-                    .build(project)
+                    .build(&project)
                     .await
-                    .map(|path| CompiledSwayProject::new(project.clone(), &path).unwrap())
+                    .map(|path| CompiledSwayProject::new(project, &path).unwrap())
             }
         })
         .collect::<Vec<_>>()

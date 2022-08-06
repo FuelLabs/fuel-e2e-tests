@@ -32,7 +32,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     announce_build_started(&dirty_projects);
 
-    let (compiled, errors) = compile_sway_projects(&dirty_projects, &assets_dir).await?;
+    let (compiled, errors) = compile_sway_projects(dirty_projects, &assets_dir).await?;
 
     announce_build_finished(&errors);
 
@@ -60,12 +60,12 @@ async fn detect_and_partition_projects(
     ))
 }
 
-fn filter_dirty_projects<'a, T: IntoIterator<Item = &'a K>, K: AsRef<SwayProject> + 'a>(
+fn filter_dirty_projects(
     projects: Vec<SwayProject>,
-    built_and_clean: T,
+    built_and_clean: &[&CompiledSwayProject],
 ) -> Vec<SwayProject> {
     let built_and_clean: Vec<&SwayProject> =
-        built_and_clean.into_iter().map(|p| p.as_ref()).collect();
+        built_and_clean.iter().map(|p| p.sway_project()).collect();
 
     projects
         .into_iter()
@@ -113,8 +113,8 @@ async fn fingerprint_projects_for_storage<'a, T: IntoIterator<Item = &'a Compile
         .then(|project| async {
             let fingerprint = FingerprintCalculator::fingerprint(project).await?;
             Ok(StoredFingerprint {
-                project_source: project.project.path().to_path_buf(),
-                project_build: project.target_path.to_path_buf(),
+                project_source: project.sway_project().path().to_path_buf(),
+                project_build: project.build_path.to_path_buf(),
                 fingerprint,
             })
         })

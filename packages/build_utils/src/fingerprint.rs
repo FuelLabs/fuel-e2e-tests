@@ -1,4 +1,4 @@
-use crate::metadata::FileMetadata;
+use crate::metadata::FsMetadata;
 use crate::sway::project::{CompiledSwayProject, SwayProject};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -49,10 +49,10 @@ pub fn load_stored_fingerprints<T: AsRef<Path>>(
 
 impl FingerprintCalculator {
     pub async fn fingerprint(project: &CompiledSwayProject) -> anyhow::Result<Fingerprint> {
-        let source_files = project.project.source_files().await?;
+        let source_files = project.sway_project().source_files().await?;
         let source_fingerprint = Self::fingerprint_files(source_files);
 
-        let build_files = project.build_files().await?;
+        let build_files = project.build_artifacts().await?;
         let build_fingerprint = Self::fingerprint_files(build_files);
 
         Ok(Fingerprint {
@@ -61,7 +61,7 @@ impl FingerprintCalculator {
         })
     }
 
-    fn fingerprint_files(mut vec: Vec<FileMetadata>) -> u32 {
+    fn fingerprint_files(mut vec: Vec<FsMetadata>) -> u32 {
         vec.sort_by(|left, right| left.path.cmp(&right.path));
 
         let filename_mtime_pairs = vec

@@ -6,34 +6,28 @@ use tokio_stream::StreamExt;
 
 pub struct DirtDetector {
     storage_fingerprints: HashMap<CompiledSwayProject, Fingerprint>,
-    compiled_projects: HashMap<SwayProject, CompiledSwayProject>,
 }
 
 impl DirtDetector {
     pub fn new(storage_fingerprints: HashMap<CompiledSwayProject, Fingerprint>) -> Self {
-        let compiled_projects = storage_fingerprints
-            .keys()
-            .cloned()
-            .map(|compiled_project| (compiled_project.project.clone(), compiled_project))
-            .collect::<HashMap<_, _>>();
-
         Self {
             storage_fingerprints,
-            compiled_projects,
         }
     }
 
     fn to_compiled_project(&self, project: &SwayProject) -> Option<&CompiledSwayProject> {
-        self.compiled_projects.get(project)
+        self.storage_fingerprints
+            .keys()
+            .find(|compiled_project| compiled_project.sway_project() == project)
     }
 
     #[async_recursion]
-    async fn is_dirty(&self, project: &CompiledSwayProject) -> anyhow::Result<bool> {
-        if self.fingerprint_changed(project).await? {
+    async fn is_dirty(&self, compiled_project: &CompiledSwayProject) -> anyhow::Result<bool> {
+        if self.fingerprint_changed(compiled_project).await? {
             return Ok(true);
         }
 
-        for project in project.project.deps().await? {
+        for project in compiled_project.sway_project().deps().await? {
             match self.to_compiled_project(&project) {
                 None => return Ok(true),
                 Some(compiled_project) => {
@@ -59,7 +53,7 @@ impl DirtDetector {
     }
 
     pub async fn get_clean_projects(&self) -> anyhow::Result<Vec<&CompiledSwayProject>> {
-        Ok(tokio_stream::iter(self.compiled_projects.values())
+        Ok(tokio_stream::iter(self.storage_fingerprints.keys())
             .then(|project| async move {
                 let clean_project = if !self.is_dirty(project).await? {
                     Some(project)
