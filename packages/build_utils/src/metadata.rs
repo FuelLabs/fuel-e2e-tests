@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 use tokio_stream::StreamExt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FsMetadata {
     pub path: PathBuf,
     pub modified: SystemTime,

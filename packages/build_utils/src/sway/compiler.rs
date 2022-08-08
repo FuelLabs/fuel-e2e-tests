@@ -23,6 +23,10 @@ impl Display for CompilationError {
 
 impl Error for CompilationError {}
 
+pub struct SwayCompiler {
+    target_dir: PathBuf,
+}
+
 impl SwayCompiler {
     pub fn new<T: Into<PathBuf>>(target_dir: T) -> SwayCompiler {
         SwayCompiler {
@@ -61,8 +65,4 @@ impl SwayCompiler {
 
         Ok(build_dir)
     }
-}
-
-pub struct SwayCompiler {
-    target_dir: PathBuf,
 }

@@ -21,3 +21,4 @@ async-recursion = "1.0.0"
 
 [dev-dependencies]
 tempfile = "3.3.0"
+rand = "0.8.5"
