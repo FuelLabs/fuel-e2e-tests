@@ -1,12 +1,12 @@
 use crate::metadata::FsMetadata;
 use crate::sway::project::{CompiledSwayProject, SwayProject};
+use futures::future::join_all;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tokio::io;
-use tokio_stream::StreamExt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StoredFingerprint {
@@ -77,13 +77,15 @@ pub async fn zip_with_fingerprints<T>(
 where
     T: IntoIterator<Item = CompiledSwayProject>,
 {
-    tokio_stream::iter(compiled_projects.into_iter())
-        .then(|project| async move {
+    let futures = compiled_projects
+        .into_iter()
+        .map(|project| async move {
             let fingerprint = Fingerprint::of(&project).await?;
             Ok((project, fingerprint))
         })
-        .collect::<io::Result<Vec<_>>>()
-        .await
+        .collect::<Vec<_>>();
+
+    join_all(futures).await.into_iter().collect()
 }
 
 #[cfg(test)]

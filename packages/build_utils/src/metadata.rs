@@ -1,7 +1,7 @@
+use futures::future::join_all;
 use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use tokio_stream::StreamExt;
 
 #[derive(Debug, Clone)]
 pub struct FsMetadata {
@@ -19,9 +19,8 @@ impl FsMetadata {
     where
         T: IntoIterator<Item = PathBuf>,
     {
-        tokio_stream::iter(paths)
-            .then(FsMetadata::from)
-            .collect()
-            .await
+        let futures = paths.into_iter().map(FsMetadata::from).collect::<Vec<_>>();
+
+        join_all(futures).await.into_iter().collect()
     }
 }

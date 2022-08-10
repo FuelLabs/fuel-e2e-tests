@@ -1,6 +1,6 @@
+use futures::future::join_all;
 use std::collections::HashMap;
 use std::path::Path;
-use tokio_stream::StreamExt;
 
 use crate::fingerprint::{load_stored_fingerprints, zip_with_fingerprints, Fingerprint};
 use crate::sway::project::{CompiledSwayProject, SwayProject};
@@ -92,13 +92,15 @@ async fn zip_with_deps<T>(
 where
     T: IntoIterator<Item = CompiledSwayProject>,
 {
-    tokio_stream::iter(compiled_projects.into_iter())
-        .then(|project| async move {
+    let futures = compiled_projects
+        .into_iter()
+        .map(|project| async move {
             let deps = project.sway_project().deps().await?;
             Ok((project, deps))
         })
-        .collect::<anyhow::Result<Vec<_>>>()
-        .await
+        .collect::<Vec<_>>();
+
+    join_all(futures).await.into_iter().collect()
 }
 
 #[cfg(test)]

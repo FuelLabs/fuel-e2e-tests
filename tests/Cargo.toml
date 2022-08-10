@@ -7,12 +7,6 @@ edition = "2021"
 [dev-dependencies]
 anyhow = "1.0.58"
 fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
-fuel-vm = "0.12.3"
-hex = "0.4.3"
-ctor = "0.1.22"
-sha2 = "0.10.2"
-tokio = { version = "1.19.2", features = ["fs"] }
-tracing = { version = "0.1", default-features = false }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt"] }
-test_macros = { path = "../packages/test_macros" }
 test_abigen = { path = "../packages/test_abigen" }
+test_macros = { path = "../packages/test_macros" }
+tokio = { version = "1.19.2", features = ["fs"] }

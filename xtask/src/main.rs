@@ -1,7 +1,6 @@
 mod commands;
 pub mod utils;
 
-use crate::commands::Commands;
 use clap::Parser;
 use commands::{dispatch_command, Cli};
 

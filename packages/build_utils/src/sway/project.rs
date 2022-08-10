@@ -32,7 +32,7 @@ impl SwayProject {
     }
 
     pub async fn deps(&self) -> anyhow::Result<Vec<SwayProject>> {
-        let manifest = ManifestFile::from_dir(&self.path, "UNUSED")?;
+        let manifest = ManifestFile::from_dir(&self.path)?;
 
         manifest
             .deps()
