@@ -14,7 +14,31 @@ async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
         .args(args)
         .kill_on_drop(true)
         .stdin(Stdio::null())
+        .stdout(Stdio::null())
         .stderr(Stdio::null())
+        .status()
+        .await?;
+
+    if !status.success() {
+        let ws_separated_args = args.iter().join(" ");
+
+        let command = format!("{} {}", command, ws_separated_args);
+        bail!("Running command: '{command}' failed with status: {status}");
+    }
+
+    Ok(())
+}
+
+pub async fn checked_command_fwd_output<T: AsRef<OsStr> + Debug + Display>(
+    command: &str,
+    args: &[T],
+    workdir: &Path,
+) -> anyhow::Result<()> {
+    let status = Command::new(command)
+        .args(args)
+        .stdin(Stdio::null())
+        .current_dir(workdir)
+        .kill_on_drop(true)
         .status()
         .await?;
 

@@ -2,10 +2,10 @@ use build_utils::commands::build_local_forc;
 use build_utils::dirt_detector::DirtDetector;
 use build_utils::sway::compiler::{CompilationError, SwayCompiler};
 use build_utils::sway::project::{discover_projects, CompiledSwayProject, SwayProject};
+use futures::{stream, StreamExt};
 use itertools::Itertools;
 use std::io;
 use std::path::{Path, PathBuf};
-use tokio_stream::StreamExt;
 
 pub async fn compile_sway_projects(
     projects: Vec<SwayProject>,
@@ -17,8 +17,8 @@ pub async fn compile_sway_projects(
 
     let compiler = SwayCompiler::new(target_dir);
 
-    let result = tokio_stream::iter(projects.into_iter())
-        .then(|project| {
+    let result = stream::iter(projects)
+        .map(|project| {
             let compiler = &compiler;
             async move {
                 compiler
@@ -27,10 +27,13 @@ pub async fn compile_sway_projects(
                     .map(|path| CompiledSwayProject::new(project, &path).unwrap())
             }
         })
-        .collect::<Vec<_>>()
-        .await;
+        .buffer_unordered(num_cpus::get() * 2);
 
-    Ok(result.into_iter().partition_result())
+    Ok(result
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .partition_result())
 }
 
 #[macro_export]
@@ -40,8 +43,8 @@ macro_rules! env_path {
     }};
 }
 
-pub async fn get_assets_dir(root_dir: &Path) -> io::Result<PathBuf> {
-    let assets_dir = root_dir.join("../assets");
+pub async fn get_assets_dir() -> io::Result<PathBuf> {
+    let assets_dir = env_path!("CARGO_MANIFEST_DIR").join("../assets");
     tokio::fs::create_dir_all(&assets_dir).await?;
     Ok(assets_dir)
 }
@@ -85,15 +88,13 @@ fn filter_dirty_projects(
         .collect()
 }
 
-pub fn announce_build_finished(compilation_errs: &[CompilationError]) {
-    if !compilation_errs.is_empty() {
-        let msg = compilation_errs
-            .iter()
-            .map(|err| format!("- {} - {}", err.project.name(), err.reason))
-            .join("\n");
+pub fn adapt_error_message(compilation_errs: &[CompilationError]) -> String {
+    let msg = compilation_errs
+        .iter()
+        .map(|err| format!("- {}", err.project.name()))
+        .join("\n");
 
-        eprintln!("Following Sway projects could not be built: \n{msg}");
-    }
+    format!("Following Sway projects could not be built: \n{msg}")
 }
 
 pub fn announce_build_started(projects_to_build: &[SwayProject]) {
