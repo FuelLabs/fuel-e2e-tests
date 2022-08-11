@@ -35,6 +35,12 @@ jobs:
         run: |
           git config --global core.bigfilethreshold 100m
 
+      - name: Verify xtask works correctly before building examples
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --package xtask
+
       - name: Build Sway Examples
         uses: actions-rs/cargo@v1
         with:
@@ -45,7 +51,6 @@ jobs:
         with:
           retention-days: 2
           name: e2e-assets
-          # cache only the sway build artifacts, skip all test_project src files
           path: |
             assets
 
@@ -118,8 +123,8 @@ jobs:
         if: ${{ matrix.command == 'clippy' }}
         run: rustup component add clippy
 
-      - name: Download sway example artifacts
-        if: ${{ matrix.command == 'test' || matrix.command == 'clippy' }}
+      - name: Download sway example artifacts (only if needed)
+        if: ${{ (!matrix.package || matrix.package == 'tests') && (matrix.command == 'test' || matrix.command == 'clippy') }}
         uses: actions/download-artifact@v3
         with:
           name: e2e-assets
@@ -132,8 +137,9 @@ jobs:
           command: ${{ matrix.command }}
           args: ${{ matrix.args }}
 
+      # Skipping xtask because we've already tested it before generating the sway examples.
       - name: Cargo (package-level)
-        if: ${{ matrix.package }}
+        if: ${{ matrix.package  && matrix.package != 'xtask' }}
         uses: actions-rs/cargo@v1
         with:
           command: ${{ matrix.command }}
