@@ -139,7 +139,7 @@ jobs:
 
       # Will skip testing xtask because we've already tested it before generating the sway examples.
       - name: Cargo (package-level)
-        if: ${{ matrix.package  && !(matrix.package == 'xtask' && matrix.command == 'test' }}
+        if: ${{ matrix.package  && !(matrix.package == 'xtask' && matrix.command == 'test') }}
         uses: actions-rs/cargo@v1
         with:
           command: ${{ matrix.command }}
