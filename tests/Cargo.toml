@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev-dependencies]
 anyhow = "1.0.58"
-fuels = { git = "https://github.com/FuelLabs/fuels-rs", features = ["fuel-core-lib"] }
+fuels = { version = "0.20.0", features = ["fuel-core-lib"] }
 test_abigen = { path = "../packages/test_abigen" }
 test_macros = { path = "../packages/test_macros" }
 tokio = { version = "1.19.2", features = ["fs"] }
