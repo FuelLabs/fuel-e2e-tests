@@ -35,12 +35,6 @@ jobs:
         run: |
           git config --global core.bigfilethreshold 100m
 
-      - name: Verify xtask works correctly before building examples
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --package xtask
-
       - name: Build Sway Examples
         uses: actions-rs/cargo@v1
         with:
@@ -137,9 +131,8 @@ jobs:
           command: ${{ matrix.command }}
           args: ${{ matrix.args }}
 
-      # Will skip testing xtask because we've already tested it before generating the sway examples.
       - name: Cargo (package-level)
-        if: ${{ matrix.package  && !(matrix.package == 'xtask' && matrix.command == 'test') }}
+        if: ${{ matrix.package }}
         uses: actions-rs/cargo@v1
         with:
           command: ${{ matrix.command }}
