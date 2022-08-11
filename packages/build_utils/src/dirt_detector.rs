@@ -5,6 +5,8 @@ use std::path::Path;
 use crate::fingerprint::{load_stored_fingerprints, zip_with_fingerprints, Fingerprint};
 use crate::sway::project::{CompiledSwayProject, SwayProject};
 
+// Used to help determine which of the already compiled projects need
+// recompiling nevertheless.
 pub struct DirtDetector {
     storage_fingerprints: HashMap<CompiledSwayProject, Fingerprint>,
     current_fingerprints: HashMap<CompiledSwayProject, Fingerprint>,
@@ -25,11 +27,23 @@ impl DirtDetector {
         }
     }
 
+    /// Instantiates a `DirtDetector` by loading stored fingerprints from the
+    /// file pointed to by `path` and proceeding to determine their current
+    /// fingerprints and immediate dependencies.
+    ///
+    /// # Arguments
+    ///
+    /// * `file`: a file containing a JSON array of serialized
+    /// `StoredFingerprint` object.
     pub async fn from_fingerprints_storage(file: &Path) -> anyhow::Result<DirtDetector> {
         let stored_fingerprints = load_stored_fingerprints(file)?;
         let compiled_projects = stored_fingerprints.keys().cloned();
-        let current_fingerprints = zip_with_fingerprints(compiled_projects.clone()).await?;
-        let deps_info = zip_with_deps(compiled_projects).await?;
+
+        let current_fingerprints = zip_with_fingerprints(compiled_projects.clone());
+        let deps_info = zip_with_deps(compiled_projects);
+
+        let current_fingerprints = current_fingerprints.await?;
+        let deps_info = deps_info.await?;
 
         Ok(Self::new(
             stored_fingerprints,
@@ -38,6 +52,8 @@ impl DirtDetector {
         ))
     }
 
+    /// From the `CompiledSwayProjects` originally read from storage, filter out
+    /// those that don't need recompiling.
     pub fn get_clean_projects(&self) -> Vec<CompiledSwayProject> {
         self.storage_fingerprints
             .keys()
@@ -56,6 +72,8 @@ impl DirtDetector {
             .find(|compiled_project| compiled_project.sway_project() == project)
     }
 
+    /// A project dirty because its build or source files changed or because one
+    /// of its dependencies became dirty.
     fn is_dirty(&self, compiled_project: &CompiledSwayProject) -> bool {
         if self.fingerprint_changed(compiled_project) {
             return true;
@@ -86,6 +104,7 @@ impl DirtDetector {
     }
 }
 
+/// Pairs each given project with a Vec of its dependencies.
 async fn zip_with_deps<T>(
     compiled_projects: T,
 ) -> anyhow::Result<Vec<(CompiledSwayProject, Vec<SwayProject>)>>

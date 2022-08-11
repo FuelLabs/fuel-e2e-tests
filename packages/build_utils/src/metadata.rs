@@ -3,6 +3,7 @@ use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+/// Exists to carry the data needed to generate a project's `Fingerprint`.
 #[derive(Debug, Clone)]
 pub struct FsMetadata {
     pub path: PathBuf,

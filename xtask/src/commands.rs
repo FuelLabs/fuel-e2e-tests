@@ -23,15 +23,20 @@ pub enum Commands {
     /// Builds sway projects and places the output in the 'assets' dir.
     Build,
     /// Builds (if necessary) sway projects and runs `cargo test` on the e2e tests.
-    Test,
+    Test {
+        /// Run all workspace tests, not just e2e ones.
+        #[clap(long, value_parser, default_value_t = false)]
+        all: bool,
+    },
 }
 
-pub async fn dispatch_command(command: &Commands) -> anyhow::Result<()> {
+/// Will determine what further action to take and take it.
+pub async fn dispatch_command(command: Commands) -> anyhow::Result<()> {
     match command {
         Commands::Build => build().await,
-        Commands::Test => {
+        Commands::Test { all } => {
             build().await?;
-            test().await
+            test(all).await
         }
         Commands::Clean => clean().await,
     }
@@ -59,9 +64,18 @@ async fn build() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn test() -> anyhow::Result<()> {
+async fn test(all: bool) -> anyhow::Result<()> {
     let workspace_dir = env_path!("CARGO_MANIFEST_DIR").join("..");
-    checked_command_fwd_output(env!("CARGO"), &["test", "--workspace"], &workspace_dir).await
+
+    let additional_args = if all {
+        vec!["--workspace"]
+    } else {
+        vec!["--package", "tests"]
+    };
+
+    let args = chain!(["test"], additional_args).collect::<Vec<_>>();
+
+    checked_command_fwd_output(env!("CARGO"), &args, &workspace_dir).await
 }
 
 async fn clean() -> anyhow::Result<()> {

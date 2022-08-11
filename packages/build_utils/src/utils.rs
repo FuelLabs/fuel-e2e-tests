@@ -18,6 +18,8 @@ pub mod test_utils {
             .collect())
     }
 
+    /// For each given path, ensures that all of its components exist. I.e. if
+    /// the directory is missing -- create it. Same goes for the file.
     pub fn ensure_files_exist(
         basedir: &Path,
         relative_paths: &[&str],

@@ -8,6 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tokio::io;
 
+// Used to store project fingerprint data.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StoredFingerprint {
     pub project_source: PathBuf,
@@ -15,13 +16,26 @@ pub struct StoredFingerprint {
     pub fingerprint: Fingerprint,
 }
 
+// Used to determine whether the source or build files of a project changed
+// warranting a recompile. The checksums are generated from the concatenation of
+// paths and mtimes of project files.
 #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Fingerprint {
+    // checksum of the project's source files.
     pub source: u32,
+    // checksum of the project's build files.
     pub build: u32,
 }
 
 impl Fingerprint {
+    /// Generates a `Fingerprint` from the source and build files pointed to by
+    /// `compiled_project`. Checksums are generated from a concatenation of
+    /// filepath:mtime pairs.
+    ///
+    /// # Errors
+    ///
+    /// In case anything goes wrong with discovering files or reading their
+    /// metadata, an io::Error will be returned.
     pub async fn of(compiled_project: &CompiledSwayProject) -> io::Result<Fingerprint> {
         let source_files = compiled_project.sway_project().source_files().await?;
         let source_fingerprint = fingerprint_files(source_files);
@@ -36,6 +50,15 @@ impl Fingerprint {
     }
 }
 
+/// Deserializes and converts stored `StoredFingerprint` entries into a HashMap of
+/// `CompiledSwayProject` -> `Fingerprint` mappings.
+///
+/// Entries pointing to nonexistent/invalid projects are ignored.
+///
+/// # Arguments
+///
+/// * `path`: the path to the JSON file containing an array of
+/// `StoredFingerprint` entries.
 pub fn load_stored_fingerprints<T: AsRef<Path>>(
     path: T,
 ) -> anyhow::Result<HashMap<CompiledSwayProject, Fingerprint>> {
@@ -71,6 +94,7 @@ fn fingerprint_files(mut vec: Vec<FsMetadata>) -> u32 {
     crc32fast::hash(filename_mtime_pairs.as_bytes())
 }
 
+/// Calculates and pairs up each given project with its `Fingerprint`.
 pub async fn zip_with_fingerprints<T>(
     compiled_projects: T,
 ) -> io::Result<Vec<(CompiledSwayProject, Fingerprint)>>

@@ -4,6 +4,13 @@ use syn::parse::{Parse, ParseStream, Result as ParseResult};
 use syn::{parse_macro_input, Ident, LitStr, Token};
 use test_macros::test_project_abi_path;
 
+/// A shallow wrapper around `abigen!` from fuels-rs. It takes the given project
+/// name and expands it to the path of the project inside the generated `assets`
+/// dir.
+///
+/// # Arguments
+///
+/// * `input`: the sway project dir name.
 #[proc_macro]
 pub fn test_project_abigen(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as ContractArgs);
