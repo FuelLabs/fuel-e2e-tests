@@ -39,7 +39,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: xtask
-          args: build
+          args: build --compile-forc
 
       - uses: actions/upload-artifact@v2
         with:
