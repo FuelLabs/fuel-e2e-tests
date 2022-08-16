@@ -1,21 +1,24 @@
-use build_utils::commands::build_local_forc;
-use build_utils::dirt_detector::DirtDetector;
-use build_utils::sway::compiler::{CompilationError, SwayCompiler};
-use build_utils::sway::project::{discover_projects, CompiledSwayProject, SwayProject};
-use futures::{stream, StreamExt};
-use itertools::Itertools;
 use std::io;
 use std::path::{Path, PathBuf};
+
+use futures::{stream, StreamExt};
+use itertools::Itertools;
+
+use build_utils::commands::build_local_forc;
+use build_utils::dirt_detector::DirtDetector;
+use build_utils::env_path;
+use build_utils::sway::compiler::{CompilationError, SwayCompiler};
+use build_utils::sway::forc_runner::{BinaryForcRunner, CargoForcRunner, ForcRunner};
+use build_utils::sway::project::{discover_projects, CompiledSwayProject, SwayProject};
 
 pub async fn compile_sway_projects(
     projects: Vec<SwayProject>,
     target_dir: &Path,
+    compile_forc: bool,
 ) -> anyhow::Result<(Vec<CompiledSwayProject>, Vec<CompilationError>)> {
-    build_local_forc()
-        .await
-        .expect("Failed to build local forc! Investigate!");
+    let runner = choose_forc_runner(compile_forc).await;
 
-    let compiler = SwayCompiler::new(target_dir);
+    let compiler = SwayCompiler::new(target_dir, runner);
 
     let result = stream::iter(projects)
         .map(|project| {
@@ -36,11 +39,41 @@ pub async fn compile_sway_projects(
         .partition_result())
 }
 
-#[macro_export]
-macro_rules! env_path {
-    ($path:literal) => {{
-        std::path::Path::new(env!($path))
-    }};
+async fn choose_forc_runner(compile_forc: bool) -> Box<dyn ForcRunner> {
+    if compile_forc {
+        build_forc_and_use_it().await
+    } else {
+        find_and_use_forc_binary_in_path()
+    }
+}
+
+async fn build_forc_and_use_it() -> Box<dyn ForcRunner> {
+    build_local_forc()
+        .await
+        .expect("Failed to build local forc! Investigate!");
+
+    Box::new(CargoForcRunner)
+}
+
+fn find_and_use_forc_binary_in_path() -> Box<dyn ForcRunner> {
+    let executables = find_forc_executables();
+
+    let executable = match executables.as_slice() {
+        [] => {
+            panic!("Couldn't find a 'forc' binary in PATH.")
+        }
+        [only_executable] => only_executable,
+        [first_executable, ..] => {
+            eprintln!("Warning. Found multiple `forc` binaries in PATH: {executables:?}. Choosing: {first_executable:?}");
+            first_executable
+        }
+    };
+
+    Box::new(BinaryForcRunner::new(executable.clone()))
+}
+
+fn find_forc_executables() -> Vec<PathBuf> {
+    which::which_all("forc").unwrap().collect()
 }
 
 pub async fn get_assets_dir() -> io::Result<PathBuf> {

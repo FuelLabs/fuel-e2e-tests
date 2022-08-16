@@ -1,10 +1,10 @@
-use crate::env_path;
 use crate::utils::{
     adapt_error_message, announce_build_started, compile_sway_projects,
     detect_and_partition_projects, get_assets_dir,
 };
 use anyhow::bail;
 use build_utils::commands::checked_command_fwd_output;
+use build_utils::env_path;
 use build_utils::fingerprint::fingerprint_and_save_to_file;
 use clap::{Parser, Subcommand};
 use itertools::chain;
@@ -21,9 +21,16 @@ pub enum Commands {
     /// Deletes the asset dir along with the compiled sway projects.
     Clean,
     /// Builds sway projects and places the output in the 'assets' dir.
-    Build,
+    Build {
+        /// Instead of searching PATH for a 'forc' binary, compile it instead.
+        #[clap(long, value_parser, default_value_t = false)]
+        compile_forc: bool,
+    },
     /// Builds (if necessary) sway projects and runs `cargo test` on the e2e tests.
     Test {
+        /// Instead of searching PATH for a 'forc' binary, compile it instead.
+        #[clap(long, value_parser, default_value_t = false)]
+        compile_forc: bool,
         /// Run all workspace tests, not just e2e ones.
         #[clap(long, value_parser, default_value_t = false)]
         all: bool,
@@ -33,16 +40,19 @@ pub enum Commands {
 /// Will determine what further action to take and take it.
 pub async fn dispatch_command(command: Commands) -> anyhow::Result<()> {
     match command {
-        Commands::Build => build().await,
-        Commands::Test { all } => {
-            build().await?;
+        Commands::Build { compile_forc } => build(compile_forc).await,
+        Commands::Test {
+            compile_forc: use_forc_from_path,
+            all,
+        } => {
+            build(use_forc_from_path).await?;
             test(all).await
         }
         Commands::Clean => clean().await,
     }
 }
 
-async fn build() -> anyhow::Result<()> {
+async fn build(compile_forc: bool) -> anyhow::Result<()> {
     let projects_dir = env_path!("CARGO_MANIFEST_DIR").join("../tests/tests");
 
     let storage_path = get_assets_dir().await?.join("storage.json");
@@ -53,7 +63,7 @@ async fn build() -> anyhow::Result<()> {
     announce_build_started(&dirty_projects);
 
     let (compiled, errors) =
-        compile_sway_projects(dirty_projects, &get_assets_dir().await?).await?;
+        compile_sway_projects(dirty_projects, &get_assets_dir().await?, compile_forc).await?;
 
     fingerprint_and_save_to_file(chain!(compiled, clean_projects), &storage_path).await?;
 

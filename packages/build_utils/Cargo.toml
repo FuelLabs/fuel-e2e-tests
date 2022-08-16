@@ -14,6 +14,7 @@ serde = "1.0.139"
 serde_json = "1.0.82"
 tokio = { version = "1.20.0", features = ["fs", "process", "macros", "rt"] }
 tokio-stream = { version = "0.1.9", features = ["fs"] }
+async-trait = "0.1.57"
 
 [dev-dependencies]
 rand = "0.8.5"

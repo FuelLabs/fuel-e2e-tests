@@ -13,11 +13,14 @@ use tokio::process::Command;
 ///
 /// * `command`: The name of the executable you wish to run.
 /// * `args`: Args to pass to the executable
-async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
-    command: &str,
-    args: &[T],
+pub(crate) async fn checked_command_drop_output<
+    T: AsRef<OsStr> + Debug,
+    K: AsRef<OsStr> + Debug,
+>(
+    command: T,
+    args: &[K],
 ) -> anyhow::Result<()> {
-    let status = Command::new(command)
+    let status = Command::new(command.as_ref())
         .args(args)
         .kill_on_drop(true)
         .stdin(Stdio::null())
@@ -27,10 +30,8 @@ async fn checked_command_drop_output<T: AsRef<OsStr> + Debug + Display>(
         .await?;
 
     if !status.success() {
-        let ws_separated_args = args.iter().join(" ");
-
-        let command = format!("{} {}", command, ws_separated_args);
-        bail!("Running command: '{command}' failed with status: {status}");
+        let ws_separated_args = args.iter().map(|arg| format!("{arg:?}")).join(" ");
+        bail!("Running command: '{command:?} {ws_separated_args}' failed with status: {status}");
     }
 
     Ok(())
@@ -72,33 +73,6 @@ pub async fn build_local_forc() -> anyhow::Result<()> {
     checked_command_drop_output(
         env!("CARGO"),
         &["build", "--quiet", "--package", "local_forc"],
-    )
-    .await
-}
-
-/// Will use cargo to compile and run the local_forc package which contains a
-/// binary wrapping the forc library.
-///
-/// # Arguments
-///
-/// * `project_dir`: the directory of the sway project you wish to build
-/// * `output_dir`: the directory where to place the build artifacts
-pub(crate) async fn run_local_forc(project_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
-    checked_command_drop_output(
-        env!("CARGO"),
-        &[
-            "run",
-            "--quiet",
-            "--package",
-            "local_forc",
-            "--",
-            "build",
-            "--silent",
-            "--output-directory",
-            &output_dir.to_string_lossy(),
-            "--path",
-            &project_dir.to_string_lossy(),
-        ],
     )
     .await
 }

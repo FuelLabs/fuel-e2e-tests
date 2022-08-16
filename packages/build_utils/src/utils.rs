@@ -1,5 +1,12 @@
+#[macro_export]
+macro_rules! env_path {
+    ($path:literal) => {{
+        std::path::Path::new(env!($path))
+    }};
+}
+
 #[cfg(test)]
-pub mod test_utils {
+pub(crate) mod test_utils {
     use crate::sway::project::{CompiledSwayProject, SwayProject};
     use std::collections::HashSet;
     use std::fmt::Debug;
@@ -97,6 +104,7 @@ pub mod test_utils {
 
         SwayProject::new(&dir)
     }
+
     pub fn generate_compiled_sway_project(
         sources_dir: &Path,
         project_name: &str,
