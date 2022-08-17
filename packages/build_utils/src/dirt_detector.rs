@@ -72,8 +72,8 @@ impl DirtDetector {
             .find(|compiled_project| compiled_project.sway_project() == project)
     }
 
-    /// A project dirty because its build or source files changed or because one
-    /// of its dependencies became dirty.
+    /// A project is dirty because its build or source files changed or because
+    /// one of its dependencies became dirty.
     fn is_dirty(&self, compiled_project: &CompiledSwayProject) -> bool {
         if self.fingerprint_changed(compiled_project) {
             return true;

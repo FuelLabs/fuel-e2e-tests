@@ -90,7 +90,7 @@ pub async fn discover_projects(dir: &Path) -> anyhow::Result<Vec<SwayProject>> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompiledSwayProject {
     project: SwayProject,
-    pub build_path: PathBuf,
+    build_path: PathBuf,
 }
 
 impl CompiledSwayProject {

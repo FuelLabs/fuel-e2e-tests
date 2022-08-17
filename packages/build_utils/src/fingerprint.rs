@@ -177,7 +177,7 @@ async fn prepare_for_storage<T: IntoIterator<Item = CompiledSwayProject>>(
         .into_iter()
         .map(|(project, fingerprint)| StoredFingerprint {
             project_source: project.sway_project().path().to_path_buf(),
-            project_build: project.build_path.to_path_buf(),
+            project_build: project.build_path().to_path_buf(),
             fingerprint,
         })
         .collect())
