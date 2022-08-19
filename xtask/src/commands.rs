@@ -53,7 +53,7 @@ pub async fn dispatch_command(command: Commands) -> anyhow::Result<()> {
 }
 
 async fn build(compile_forc: bool) -> anyhow::Result<()> {
-    let projects_dir = env_path!("CARGO_MANIFEST_DIR").join("../tests/tests");
+    let projects_dir = env_path!("CARGO_MANIFEST_DIR").join("../sway_projects");
 
     let storage_path = get_assets_dir().await?.join("storage.json");
 

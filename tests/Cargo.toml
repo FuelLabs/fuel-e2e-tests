@@ -10,3 +10,4 @@ fuels = { version = "0.20.0", features = ["fuel-core-lib"] }
 test_abigen = { path = "../packages/test_abigen" }
 test_macros = { path = "../packages/test_macros" }
 tokio = { version = "1.19.2", features = ["fs"] }
+fuel-core = "0.9.8"
