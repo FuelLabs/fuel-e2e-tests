@@ -124,7 +124,7 @@ fn filter_dirty_projects(
 pub fn adapt_error_message(compilation_errs: &[CompilationError]) -> String {
     let msg = compilation_errs
         .iter()
-        .map(|err| format!("- {}", err.project.name()))
+        .map(|err| format!("- {}, {}", err.project.name(), err.reason))
         .join("\n");
 
     format!("Following Sway projects could not be built: \n{msg}")

@@ -1,4 +1,4 @@
-use crate::commands::checked_command_drop_output;
+use crate::commands::{checked_command_capture_output, checked_command_drop_output};
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 
@@ -20,7 +20,7 @@ impl BinaryForcRunner {
 #[async_trait]
 impl ForcRunner for BinaryForcRunner {
     async fn run_forc(&self, project_dir: &Path, output_dir: &Path) -> anyhow::Result<()> {
-        checked_command_drop_output(
+        checked_command_capture_output(
             &self.executable,
             &[
                 "build",

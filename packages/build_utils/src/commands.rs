@@ -37,6 +37,32 @@ pub(crate) async fn checked_command_drop_output<
     Ok(())
 }
 
+pub(crate) async fn checked_command_capture_output<
+    T: AsRef<OsStr> + Debug,
+    K: AsRef<OsStr> + Debug,
+>(
+    command: T,
+    args: &[K],
+) -> anyhow::Result<()> {
+    let output = Command::new(command.as_ref())
+        .args(args)
+        .kill_on_drop(true)
+        .stdin(Stdio::null())
+        .output()
+        .await?;
+
+    let status = output.status.success();
+
+    if !status {
+        let ws_separated_args = args.iter().map(|arg| format!("{arg:?}")).join(" ");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("Running command: '{command:?} {ws_separated_args}' failed with status: {status}. {stdout} {stderr}: ");
+    }
+
+    Ok(())
+}
+
 /// Runs a process forwarding its stdout and stderr to the current process's
 /// stdout and stderr, respectfully. In case of a unsuccessful exit will return
 /// an Err.
