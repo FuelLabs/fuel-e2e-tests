@@ -23,7 +23,7 @@ env:
 jobs:
   compile-sway:
     name: Compile Sway Projects
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -54,17 +54,31 @@ jobs:
 
   cargo-check:
     name: cargo check --tests
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     needs: compile-sway
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Restore Cargo Cache
+        uses: buildjet/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      
       - name: Download Sway artifacts
         uses: actions/download-artifact@v4
         with:
           name: sway-artifacts
           path: sway
+
       - name: Display structure of downloaded files
         run: ls -R
 
@@ -73,12 +87,25 @@ jobs:
 
   cargo-clippy:
     name: cargo clippy --tests
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     needs: compile-sway
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Restore Cargo Cache
+        uses: buildjet/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      
       - name: Download Sway artifacts
         uses: actions/download-artifact@v4
         with:
@@ -93,12 +120,25 @@ jobs:
 
   cargo-test:
     name: cargo test (TARGET_CHAIN="local")
-    runs-on: ubuntu-latest
+    runs-on: buildjet-4vcpu-ubuntu-2204
     needs: compile-sway
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Restore Cargo Cache
+        uses: buildjet/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      
       - name: Download Sway artifacts
         uses: actions/download-artifact@v4
         with:
