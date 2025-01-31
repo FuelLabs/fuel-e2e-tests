@@ -7,6 +7,8 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
     // let wallet = launch_provider_and_get_wallet().await?;
     let wallet = setup::init().await?;
     let fixture = Fixture::deploy_if_not_exists(&wallet).await?;
+    // so that we don't lose funds in cases when the test failed/was killed before we reclaimed the deposit
+    fixture.reclaim_any_previous_deposits().await?;
 
     let deposit_amount = 100;
 
@@ -15,6 +17,7 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
     let total_fee = fixture.deposit(deposit_amount).await?;
 
     let post_deposid_balances = fixture.current_balances().await?;
+    // contract configured to mint 2x the amount deposited
     let amount_minted = deposit_amount * 2;
 
     assert_eq!(
@@ -54,6 +57,16 @@ mod utils {
     }
 
     impl Fixture {
+        pub async fn reclaim_any_previous_deposits(&self) -> Result<()> {
+            let balances = self.current_balances().await?;
+
+            if balances.minted > 0 {
+                self.withdraw(balances.minted).await?;
+            }
+
+            Ok(())
+        }
+
         pub async fn deploy_if_not_exists(wallet: &WalletUnlocked) -> Result<Self> {
             let contract_id = Contract::load_from(
                 "sway/liquidity_pool/out/release/liquidity_pool.bin",
