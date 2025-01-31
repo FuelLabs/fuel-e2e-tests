@@ -24,7 +24,9 @@ pub struct Setup {
 
 pub async fn init() -> Result<Setup> {
     color_eyre::install()?;
-    dotenv()?;
+
+    // It can fail if there is no file, that's ok.
+    let _ = dotenv();
 
     let chain = read_chain()?;
 
