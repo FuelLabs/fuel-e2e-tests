@@ -1,36 +1,108 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+  release:
+    types: [ published ]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.84.1
+  FORC_VERSION: 0.66.6
+  FUEL_CORE_VERSION: 0.41.4
+
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  compile-sway:
+    name: Compile Sway Projects
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Install fuelup
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          curl -fsSL https://install.fuel.network/ | sh -s -- --skip-toolchain-installation --no-modify-path
+          echo "$HOME/.fuelup/bin" >> $GITHUB_PATH
+
+      - name: Install fuel toolchain and forc
+        run: |
+          fuelup toolchain new custom
+          fuelup component add "forc@${FORC_VERSION}"
+      
+      - name: Check Sway project formatting
+        run: forc fmt --check
+
+      - name: Build Sway projects
+        run: forc build --release
+
+      - name: Upload compiled Sway projects
+        uses: actions/upload-artifact@v4
+        with:
+          name: sway-artifacts
+          path: sway/**/*.bin
+
+  cargo-check:
+    name: cargo check --tests
+    runs-on: ubuntu-latest
+    needs: compile-sway
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download Sway artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sway-artifacts
+
+      - name: Run cargo check --tests
+        run: cargo check --tests
+
+  cargo-clippy:
+    name: cargo clippy --tests
+    runs-on: ubuntu-latest
+    needs: compile-sway
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download Sway artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sway-artifacts
+
+      - name: Run cargo clippy --tests
+        run: cargo clippy --tests
+
+  cargo-test:
+    name: cargo test (TARGET_CHAIN="local")
+    runs-on: ubuntu-latest
+    needs: compile-sway
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download Sway artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sway-artifacts
+
+      - name: Install fuel-core using fuelup
+        run: |
+          curl -fsSL https://install.fuel.network/ | sh -s -- --skip-toolchain-installation --no-modify-path
+          echo "$HOME/.fuelup/bin" >> $GITHUB_PATH
+          fuelup toolchain new custom
+          fuelup component add fuel-core@${FUEL_CORE_VERSION}
+
+      - name: Run cargo test with local node
+        run: |
+          export TARGET_CHAIN="local"
+          cargo test
