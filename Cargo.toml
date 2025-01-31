@@ -11,7 +11,10 @@ rust-version = "1.84.1"
 
 [dependencies]
 dotenv = "0.15"
-fuels = "0.70"
+# fuel-core-lib needed because we cannot configure the health-check timeout and
+# that causes our CI to give up on waiting for the spawned fuel-core binary to
+# become healthy
+fuels = { version = "0.70", features = ["fuel-core-lib"] }
 tokio = { version = "1.43.0", features = ["full"] }
 color-eyre = "0.6"
 # unfortunately we need to use the fuel-core-client because the SDK doesn't
