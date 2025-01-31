@@ -62,6 +62,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: sway-artifacts
+          path: sway
 
       - name: Run cargo check --tests
         run: cargo check --tests
