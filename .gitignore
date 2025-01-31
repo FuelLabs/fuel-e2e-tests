@@ -12,3 +12,10 @@ Cargo.lock
 /target
 
 .env
+
+# Don't add Forc lock files
+**/Forc.lock
+
+# out/ files from test Sway projects.
+sway/**/out/
+sway/**/.gitignore
