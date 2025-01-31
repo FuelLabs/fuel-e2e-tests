@@ -1,12 +1,15 @@
-use fuel_e2e_tests::setup;
+use fuel_e2e_tests::setup::{self, Setup};
 use utils::Fixture;
 
 #[tokio::test]
 async fn liquidity_pool() -> color_eyre::Result<()> {
-    // when making tweaks to the test
-    // let wallet = launch_provider_and_get_wallet().await?;
-    let wallet = setup::init().await?;
-    let fixture = Fixture::deploy_if_not_exists(&wallet).await?;
+    let Setup {
+        wallet,
+        deploy_config,
+    } = setup::init().await?;
+
+    let fixture = Fixture::deploy(&wallet, deploy_config).await?;
+
     // so that we don't lose funds in cases when the test failed/was killed before we reclaimed the deposit
     fixture.reclaim_any_previous_deposits().await?;
 
@@ -43,9 +46,14 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
 }
 
 mod utils {
+
     use color_eyre::Result;
-    use fuel_e2e_tests::helpers::ProviderExt;
+    use fuel_e2e_tests::{
+        helpers::{self, ProviderExt},
+        setup::DeployConfig,
+    };
     use fuels::{prelude::*, types::Bits256};
+    use rand::Rng;
 
     abigen!(Contract(
         name = "LiquidityContractBindings",
@@ -67,14 +75,22 @@ mod utils {
             Ok(())
         }
 
-        pub async fn deploy_if_not_exists(wallet: &WalletUnlocked) -> Result<Self> {
-            let contract_id = Contract::load_from(
-                "sway/liquidity_pool/out/release/liquidity_pool.bin",
-                LoadConfiguration::default(),
-            )
-            .unwrap()
-            .deploy_if_not_exists(wallet, TxPolicies::default())
-            .await?;
+        pub async fn deploy(
+            wallet: &WalletUnlocked,
+            deploy_config: DeployConfig,
+        ) -> Result<Self> {
+            let salt: [u8; 32] = if deploy_config.force_deploy {
+                rand::rng().random()
+            } else {
+                [0; 32]
+            };
+
+            let contract_bin = "sway/liquidity_pool/out/release/liquidity_pool.bin";
+            let contract_id = if deploy_config.deploy_in_blobs {
+                helpers::deploy_blobbed(contract_bin, wallet, salt).await?
+            } else {
+                helpers::deploy_normal(contract_bin, wallet, salt).await?
+            };
 
             let instance = LiquidityContractBindings::new(contract_id, wallet.clone());
 
