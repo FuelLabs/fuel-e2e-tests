@@ -16,12 +16,17 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
     let deposit_amount = 100;
 
     let pre_deposit_balances = fixture.current_balances().await?;
+    let pre_deposit_total = fixture.total_deposited_ever().await?;
 
     let total_fee = fixture.deposit(deposit_amount).await?;
 
+    let post_deposit_total = fixture.total_deposited_ever().await?;
     let post_deposid_balances = fixture.current_balances().await?;
+
     // contract configured to mint 2x the amount deposited
     let amount_minted = deposit_amount * 2;
+
+    assert_eq!(post_deposit_total, pre_deposit_total + deposit_amount);
 
     assert_eq!(
         post_deposid_balances.base,
@@ -46,7 +51,6 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
 }
 
 mod utils {
-
     use color_eyre::Result;
     use fuel_e2e_tests::{
         helpers::{self, ProviderExt},
@@ -158,6 +162,18 @@ mod utils {
 
         fn minted_asset_id(&self) -> AssetId {
             self.instance.contract_id().asset_id(&Bits256::zeroed())
+        }
+
+        pub async fn total_deposited_ever(&self) -> Result<u64> {
+            let total_deposited = self
+                .instance
+                .methods()
+                .total_deposited_ever()
+                .simulate(Execution::StateReadOnly)
+                .await?
+                .value;
+
+            Ok(total_deposited)
         }
 
         pub async fn current_balances(&self) -> Result<Balances> {

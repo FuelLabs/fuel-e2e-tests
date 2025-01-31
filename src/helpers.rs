@@ -10,6 +10,7 @@ use fuels::{
     types::{bech32::Bech32ContractId, transaction::TxPolicies, Bytes32},
 };
 
+#[allow(async_fn_in_trait)]
 pub trait ProviderExt {
     async fn get_tx_total_fee(&self, id: &Bytes32) -> Result<Option<u64>>;
 }

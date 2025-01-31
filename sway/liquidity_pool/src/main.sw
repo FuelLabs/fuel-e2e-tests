@@ -13,13 +13,21 @@ use std::{
 };
 
 abi LiquidityPool {
+    #[storage(read, write)]
     #[payable]
     fn deposit(recipient: Identity);
     #[payable]
     fn withdraw(recipient: Identity);
+    #[storage(read)]
+    fn total_deposited_ever() -> u64;
+}
+
+storage {
+    total_deposited_ever: u64 = 0,
 }
 
 impl LiquidityPool for Contract {
+    #[storage(read, write)]
     #[payable]
     fn deposit(recipient: Identity) {
         assert(AssetId::base() == msg_asset_id());
@@ -30,6 +38,10 @@ impl LiquidityPool for Contract {
 
         // Mint some LP token based upon the amount of the base token.
         mint_to(recipient, ZERO_B256, amount_to_mint);
+
+        storage
+            .total_deposited_ever
+            .write(storage.total_deposited_ever.read() + msg_amount());
     }
 
     #[payable]
@@ -41,5 +53,10 @@ impl LiquidityPool for Contract {
 
         // Transfer base token to recipient.
         transfer(recipient, AssetId::base(), amount_to_transfer);
+    }
+
+    #[storage(read)]
+    fn total_deposited_ever() -> u64 {
+        storage.total_deposited_ever.read()
     }
 }
