@@ -13,6 +13,11 @@
       "metadataTypeId": 1
     },
     {
+      "type": "struct DepositEvent",
+      "concreteTypeId": "4cbaf09c9b93968169a85305ccab972bca7ee522231dce41371a1cbf301889dd",
+      "metadataTypeId": 2
+    },
+    {
       "type": "u64",
       "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
     }
@@ -28,17 +33,35 @@
       "components": [
         {
           "name": "Address",
-          "typeId": 2
+          "typeId": 3
         },
         {
           "name": "ContractId",
-          "typeId": 3
+          "typeId": 4
+        }
+      ]
+    },
+    {
+      "type": "struct DepositEvent",
+      "metadataTypeId": 2,
+      "components": [
+        {
+          "name": "amount",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "minted",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "to",
+          "typeId": 1
         }
       ]
     },
     {
       "type": "struct std::address::Address",
-      "metadataTypeId": 2,
+      "metadataTypeId": 3,
       "components": [
         {
           "name": "bits",
@@ -48,7 +71,7 @@
     },
     {
       "type": "struct std::contract_id::ContractId",
-      "metadataTypeId": 3,
+      "metadataTypeId": 4,
       "components": [
         {
           "name": "bits",
@@ -111,7 +134,12 @@
       ]
     }
   ],
-  "loggedTypes": [],
+  "loggedTypes": [
+    {
+      "logId": "5528996047966410369",
+      "concreteTypeId": "4cbaf09c9b93968169a85305ccab972bca7ee522231dce41371a1cbf301889dd"
+    }
+  ],
   "messagesTypes": [],
   "configurables": []
 }

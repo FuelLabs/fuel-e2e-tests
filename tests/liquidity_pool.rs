@@ -1,5 +1,5 @@
 use fuel_e2e_tests::setup::{self, Setup};
-use utils::Fixture;
+use utils::{DepositCompleted, DepositEvent, Fixture};
 
 #[tokio::test]
 async fn liquidity_pool() -> color_eyre::Result<()> {
@@ -18,13 +18,22 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
     let pre_deposit_balances = fixture.current_balances().await?;
     let pre_deposit_total = fixture.total_deposited_ever().await?;
 
-    let total_fee = fixture.deposit(deposit_amount).await?;
+    let DepositCompleted { total_fee, event } = fixture.deposit(deposit_amount).await?;
 
     let post_deposit_total = fixture.total_deposited_ever().await?;
     let post_deposid_balances = fixture.current_balances().await?;
 
     // contract configured to mint 2x the amount deposited
     let amount_minted = deposit_amount * 2;
+
+    assert_eq!(
+        event,
+        DepositEvent {
+            amount: deposit_amount,
+            minted: amount_minted,
+            to: wallet.address().into()
+        }
+    );
 
     assert_eq!(post_deposit_total, pre_deposit_total + deposit_amount);
 
@@ -68,6 +77,12 @@ mod utils {
         instance: LiquidityContractBindings<WalletUnlocked>,
     }
 
+    #[derive(Debug)]
+    pub struct DepositCompleted {
+        pub total_fee: u64,
+        pub event: DepositEvent,
+    }
+
     impl Fixture {
         pub async fn reclaim_any_previous_deposits(&self) -> Result<()> {
             let balances = self.current_balances().await?;
@@ -101,7 +116,7 @@ mod utils {
             Ok(Self { instance })
         }
 
-        pub async fn deposit(&self, amount: u64) -> Result<u64> {
+        pub async fn deposit(&self, amount: u64) -> Result<DepositCompleted> {
             let call_params = CallParameters::default()
                 .with_amount(amount)
                 .with_asset_id(self.base_asset_id().await?);
@@ -115,13 +130,18 @@ mod utils {
                 .call()
                 .await?;
 
+            let event = resp
+                .decode_logs_with_type::<DepositEvent>()?
+                .pop()
+                .expect("should have had an event");
+
             let total_fee = self
                 .provider()
                 .get_tx_total_fee(&resp.tx_id.expect("should have tx_id"))
                 .await?
                 .expect("tx executed");
 
-            Ok(total_fee)
+            Ok(DepositCompleted { total_fee, event })
         }
 
         pub async fn withdraw(&self, amount: u64) -> Result<u64> {

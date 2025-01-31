@@ -26,6 +26,12 @@ storage {
     total_deposited_ever: u64 = 0,
 }
 
+struct DepositEvent {
+    amount: u64,
+    minted: u64,
+    to: Identity,
+}
+
 impl LiquidityPool for Contract {
     #[storage(read, write)]
     #[payable]
@@ -42,6 +48,12 @@ impl LiquidityPool for Contract {
         storage
             .total_deposited_ever
             .write(storage.total_deposited_ever.read() + msg_amount());
+
+        log(DepositEvent {
+            amount: msg_amount(),
+            minted: amount_to_mint,
+            to: recipient,
+        });
     }
 
     #[payable]
