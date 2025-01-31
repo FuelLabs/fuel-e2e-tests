@@ -48,7 +48,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sway-artifacts
-          path: sway/**/*.bin
+          path: |
+            sway/**/*.bin
+            sway/**/*.json
 
   cargo-check:
     name: cargo check --tests
@@ -63,6 +65,8 @@ jobs:
         with:
           name: sway-artifacts
           path: sway
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - name: Run cargo check --tests
         run: cargo check --tests
@@ -79,6 +83,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: sway-artifacts
+          path: sway
+
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - name: Run cargo clippy --tests
         run: cargo clippy --tests
@@ -95,6 +103,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: sway-artifacts
+          path: sway
+
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - name: Install fuelup
         run: |
