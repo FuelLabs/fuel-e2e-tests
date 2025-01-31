@@ -23,7 +23,7 @@ env:
 jobs:
   compile-sway:
     name: Compile Sway Projects
-    runs-on: ubuntu
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
