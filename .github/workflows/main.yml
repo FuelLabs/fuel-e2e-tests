@@ -95,10 +95,13 @@ jobs:
         with:
           name: sway-artifacts
 
-      - name: Install fuel-core using fuelup
+      - name: Install fuelup
         run: |
           curl -fsSL https://install.fuel.network/ | sh -s -- --skip-toolchain-installation --no-modify-path
           echo "$HOME/.fuelup/bin" >> $GITHUB_PATH
+
+      - name: Install fuel-core
+        run: |
           fuelup toolchain new custom
           fuelup component add fuel-core@${FUEL_CORE_VERSION}
 
