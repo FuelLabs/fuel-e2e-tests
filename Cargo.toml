@@ -1,0 +1,17 @@
+[package]
+name = "fuel-e2e-tests"
+version = "0.1.0"
+authors = ["Fuel Labs <contact@fuel.sh>"]
+edition = "2021"
+homepage = "https://fuel.network/"
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/FuelLabs/fuel-e2e-tests"
+rust-version = "1.84.1"
+
+[dependencies]
+dotenv = "0.15"
+fuels = "0.70.0"
+tokio = { version = "1.43.0", features = ["full"] }
+color-eyre = "0.6"
+fuel-core-client = "*"
