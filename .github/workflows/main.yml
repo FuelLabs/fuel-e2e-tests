@@ -153,6 +153,8 @@ jobs:
           curl -fsSL https://install.fuel.network/ | sh -s -- --skip-toolchain-installation --no-modify-path
           echo "$HOME/.fuelup/bin" >> $GITHUB_PATH
 
+      # Currently not used but keeping it here so that we have the CI ready once
+      # we can move away from the fuel-core-lib feature on the sdk
       - name: Install fuel-core
         run: |
           fuelup toolchain new custom
