@@ -17,6 +17,7 @@ dotenv = "0.15"
 fuels = { version = "0.70", features = ["fuel-core-lib"] }
 tokio = { version = "1.43.0", features = ["full"] }
 color-eyre = "0.6"
+# TODO: FuelLabs/fuels-rs#1394
 # unfortunately we need to use the fuel-core-client because the SDK doesn't
 # expose the total fee in the tx status
 fuel-core-client = "0.41"
