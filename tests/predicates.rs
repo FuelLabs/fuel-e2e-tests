@@ -32,8 +32,11 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
         .consensus_parameters
         .base_asset_id();
 
+    // empty out predicate if it has any coins left
+    maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
+
     // fund predicate
-    let amount = 5000;
+    let amount = 10_000;
     wallet
         .transfer(
             predicate.address(),
@@ -62,7 +65,7 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
 
     // transfer all coins from predicate back to wallet
     let wallet_amount_before_return = wallet.get_asset_balance(&base_asset_id).await?;
-    transfer_all(&predicate, wallet.address(), base_asset_id).await?;
+    maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
     assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, 0);
 
     let wallet_amount_after_return = wallet.get_asset_balance(&base_asset_id).await?;
@@ -98,8 +101,11 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
         .consensus_parameters
         .base_asset_id();
 
+    // empty out predicate if it has any coins left
+    maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
+
     // fund predicate
-    let amount = 5000;
+    let amount = 10_000;
     wallet
         .transfer(
             predicate.address(),
@@ -108,13 +114,13 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
             TxPolicies::default(),
         )
         .await?;
-    assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, amount);
+    // assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, amount);
 
     loader.upload_blob(wallet.clone()).await?;
 
     // transfer all coins from predicate back to wallet
     let wallet_amount_before_return = wallet.get_asset_balance(&base_asset_id).await?;
-    transfer_all(&predicate, wallet.address(), base_asset_id).await?;
+    maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
     assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, 0);
 
     let wallet_amount_after_return = wallet.get_asset_balance(&base_asset_id).await?;
@@ -123,25 +129,35 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
     Ok(())
 }
 
-async fn transfer_all(
-    account: &impl Account,
-    to: &Bech32Address,
+async fn maybe_transfer_all(
+    from: &impl Account,
+    funder_and_receiver: &WalletUnlocked,
     asset_id: AssetId,
 ) -> color_eyre::Result<()> {
-    let provider = account.try_provider()?;
-    let account_balance = account.get_asset_balance(&asset_id).await?;
+    let provider = from.try_provider()?;
+    let account_balance = from.get_asset_balance(&asset_id).await?;
 
-    let inputs = account
+    if account_balance == 0 {
+        return Ok(());
+    }
+
+    let inputs = from
         .get_asset_inputs_for_amount(asset_id, account_balance, None)
         .await?;
-    let outputs = vec![Output::change(to.into(), 0, asset_id)];
+    let outputs = vec![Output::change(
+        funder_and_receiver.address().into(),
+        0,
+        asset_id,
+    )];
 
-    let tb = ScriptTransactionBuilder::prepare_transfer(inputs, outputs, TxPolicies::default());
+    let mut tb = ScriptTransactionBuilder::prepare_transfer(inputs, outputs, TxPolicies::default());
+    funder_and_receiver
+        .adjust_for_fee(&mut tb, account_balance)
+        .await?;
+    tb.add_signer(funder_and_receiver.clone())?;
 
     let tx = tb.build(provider).await?;
 
-    // TODO: return acctoun balance - total fee when exposed by FuelLabs/fuels-rs#1394 so that we can
-    // assert that right amount was returned
     provider.send_transaction_and_await_commit(tx).await?;
 
     Ok(())

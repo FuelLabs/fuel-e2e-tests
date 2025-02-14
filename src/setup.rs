@@ -23,7 +23,8 @@ pub struct Setup {
 }
 
 pub async fn init() -> Result<Setup> {
-    color_eyre::install()?;
+    // affects global state so it can fail if already set
+    let _ = color_eyre::install();
 
     // It can fail if there is no file, that's ok.
     let _ = dotenv();
@@ -103,9 +104,8 @@ impl Chain {
 }
 
 fn read_env(name: &str) -> Result<String> {
-    let msg = format!(
-        "did you setup {name} env variable? add them in a .env file e.g. {name}=abcd..."
-    );
+    let msg =
+        format!("did you setup {name} env variable? add them in a .env file e.g. {name}=abcd...");
     std::env::var(name).suggestion(msg)
 }
 
