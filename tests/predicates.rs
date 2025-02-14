@@ -1,73 +1,75 @@
 use fuel_e2e_tests::setup::{self, Setup};
 use fuels::{prelude::*, programs::executable::Executable, types::output::Output};
 
-// #[tokio::test]
-// async fn pay_with_predicate -> color_eyre::Result<()> {
-//     abigen!(
-//         Contract(
-//             name = "MyContract",
-//             abi = "sway/contract_test/out/release/contract_test-abi.json"
-//         ),
-//         Predicate(
-//             name = "MyPredicate",
-//         abi = "sway/predicate_blobs/out/release/predicate_blobs-abi.json"
-//         )
-//     );
+#[tokio::test]
+async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
+    abigen!(
+        Contract(
+            name = "MyContract",
+            abi = "sway/contract_test/out/release/contract_test-abi.json"
+        ),
+        Predicate(
+            name = "MyPredicate",
+            abi = "sway/predicate_blobs/out/release/predicate_blobs-abi.json"
+        )
+    );
 
-//     let predicate_data = MyPredicateEncoder::default().encode_data(32768)?;
+    let predicate_data = MyPredicateEncoder::default().encode_data(1, 19)?;
+    let configurables = MyPredicateConfigurables::default().with_SECRET_NUMBER(10001)?;
 
-//     let mut predicate: Predicate =
-//         Predicate::load_from("sway/types/predicates/u64/out/release/u64.bin")?
-//             .with_data(predicate_data);
+    let mut predicate: Predicate =
+        Predicate::load_from("sway/predicate_blobs/out/release/predicate_blobs.bin")?
+            .with_data(predicate_data)
+            .with_configurables(configurables);
 
-//     let num_coins = 4;
-//     let num_messages = 8;
-//     let amount = 16;
-//     let (provider, _predicate_balance, _receiver, _receiver_balance, _asset_id, _) =
-//         setup_predicate_test(predicate.address(), num_coins, num_messages, amount).await?;
+    let Setup { wallet, .. } = setup::init().await?;
+    let provider = wallet.try_provider()?.clone();
+    predicate.set_provider(provider.clone());
 
-//     predicate.set_provider(provider.clone());
+    let base_asset_id = *provider
+        .chain_info()
+        .await?
+        .consensus_parameters
+        .base_asset_id();
 
-//     let contract_id = Contract::load_from(
-//         "sway/contracts/contract_test/out/release/contract_test.bin",
-//         LoadConfiguration::default(),
-//     )?
-//     .deploy_if_not_exists(&predicate, TxPolicies::default())
-//     .await?;
+    // fund predicate
+    let amount = 5000;
+    wallet
+        .transfer(
+            predicate.address(),
+            amount,
+            base_asset_id,
+            TxPolicies::default(),
+        )
+        .await?;
+    assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, amount);
 
-//     let contract_methods = MyContract::new(contract_id.clone(), predicate.clone()).methods();
-//     let tx_policies = TxPolicies::default()
-//         .with_tip(1)
-//         .with_script_gas_limit(1_000_000);
+    let contract_id = Contract::load_from(
+        "sway/contract_test/out/release/contract_test.bin",
+        LoadConfiguration::default(),
+    )?
+    .deploy_if_not_exists(&wallet, TxPolicies::default())
+    .await?;
 
-//     // TODO: https://github.com/FuelLabs/fuels-rs/issues/1394
-//     let expected_fee = 1;
-//     let consensus_parameters = provider.consensus_parameters().await?;
-//     assert_eq!(
-//         predicate
-//             .get_asset_balance(consensus_parameters.base_asset_id())
-//             .await?,
-//         192 - expected_fee
-//     );
+    // call contract method with predicate
+    let response = MyContract::new(contract_id.clone(), predicate.clone())
+        .methods()
+        .initialize_counter(42)
+        .call()
+        .await?;
 
-//     let response = contract_methods
-//         .initialize_counter(42) // Build the ABI call
-//         .with_tx_policies(tx_policies)
-//         .call()
-//         .await?;
+    assert_eq!(42, response.value);
 
-//     assert_eq!(42, response.value);
-//     // TODO: https://github.com/FuelLabs/fuels-rs/issues/1394
-//     let expected_fee = 2;
-//     assert_eq!(
-//         predicate
-//             .get_asset_balance(consensus_parameters.base_asset_id())
-//             .await?,
-//         191 - expected_fee
-//     );
+    // transfer all coins from predicate back to wallet
+    let wallet_amount_before_return = wallet.get_asset_balance(&base_asset_id).await?;
+    transfer_all(&predicate, wallet.address(), base_asset_id).await?;
+    assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, 0);
 
-//     Ok(())
-// }
+    let wallet_amount_after_return = wallet.get_asset_balance(&base_asset_id).await?;
+    assert!(wallet_amount_after_return > wallet_amount_before_return);
+
+    Ok(())
+}
 
 #[tokio::test]
 async fn predicate_blobs() -> color_eyre::Result<()> {
@@ -77,9 +79,7 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
     ));
 
     let configurables = MyPredicateConfigurables::default().with_SECRET_NUMBER(10001)?;
-
     let predicate_data = MyPredicateEncoder::default().encode_data(1, 19)?;
-
     let executable = Executable::load_from("sway/predicate_blobs/out/release/predicate_blobs.bin")?;
 
     let loader = executable
@@ -118,7 +118,6 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
     assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, 0);
 
     let wallet_amount_after_return = wallet.get_asset_balance(&base_asset_id).await?;
-
     assert!(wallet_amount_after_return > wallet_amount_before_return);
 
     Ok(())
@@ -141,6 +140,8 @@ async fn transfer_all(
 
     let tx = tb.build(provider).await?;
 
+    // TODO: return acctoun balance - total fee when exposed by FuelLabs/fuels-rs#1394 so that we can
+    // assert that right amount was returned
     provider.send_transaction_and_await_commit(tx).await?;
 
     Ok(())
