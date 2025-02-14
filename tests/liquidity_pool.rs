@@ -66,7 +66,6 @@ mod utils {
         setup::DeployConfig,
     };
     use fuels::{prelude::*, types::Bits256};
-    use rand::Rng;
 
     abigen!(Contract(
         name = "LiquidityContractBindings",
@@ -94,22 +93,13 @@ mod utils {
             Ok(())
         }
 
-        pub async fn deploy(
-            wallet: &WalletUnlocked,
-            deploy_config: DeployConfig,
-        ) -> Result<Self> {
-            let salt: [u8; 32] = if deploy_config.force_deploy {
-                rand::rng().random()
-            } else {
-                [0; 32]
-            };
-
-            let contract_bin = "sway/liquidity_pool/out/release/liquidity_pool.bin";
-            let contract_id = if deploy_config.deploy_in_blobs {
-                helpers::deploy_blobbed(contract_bin, wallet, salt).await?
-            } else {
-                helpers::deploy_normal(contract_bin, wallet, salt).await?
-            };
+        pub async fn deploy(wallet: &WalletUnlocked, deploy_config: DeployConfig) -> Result<Self> {
+            let contract_id = helpers::deploy(
+                wallet,
+                deploy_config,
+                "sway/liquidity_pool/out/release/liquidity_pool.bin",
+            )
+            .await?;
 
             let instance = LiquidityContractBindings::new(contract_id, wallet.clone());
 

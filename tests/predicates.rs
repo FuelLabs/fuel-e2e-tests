@@ -1,4 +1,7 @@
-use fuel_e2e_tests::setup::{self, Setup};
+use fuel_e2e_tests::{
+    helpers,
+    setup::{self, Setup},
+};
 use fuels::{prelude::*, programs::executable::Executable, types::output::Output};
 
 #[tokio::test]
@@ -22,7 +25,10 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
             .with_data(predicate_data)
             .with_configurables(configurables);
 
-    let Setup { wallet, .. } = setup::init().await?;
+    let Setup {
+        wallet,
+        deploy_config,
+    } = setup::init().await?;
     let provider = wallet.try_provider()?.clone();
     predicate.set_provider(provider.clone());
 
@@ -47,11 +53,11 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
         .await?;
     assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, amount);
 
-    let contract_id = Contract::load_from(
-        "sway/contract_test/out/release/contract_test.bin",
-        LoadConfiguration::default(),
-    )?
-    .deploy_if_not_exists(&wallet, TxPolicies::default())
+    let contract_id = helpers::deploy(
+        &wallet,
+        deploy_config,
+        "sway/liquidity_pool/out/release/liquidity_pool.bin",
+    )
     .await?;
 
     // call contract method with predicate
