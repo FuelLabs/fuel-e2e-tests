@@ -1,2 +1,2 @@
 [workspace]
-members = ['sway/liquidity_pool']
+members = ['sway/liquidity_pool', 'sway/contract_test', 'sway/predicate_blobs']

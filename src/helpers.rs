@@ -9,6 +9,9 @@ use fuels::{
     programs::contract::{Contract, LoadConfiguration},
     types::{bech32::Bech32ContractId, transaction::TxPolicies, Bytes32},
 };
+use rand::Rng;
+
+use crate::setup::DeployConfig;
 
 #[allow(async_fn_in_trait)]
 pub trait ProviderExt {
@@ -29,6 +32,26 @@ impl ProviderExt for Provider {
 
         Ok(fee)
     }
+}
+
+pub async fn deploy(
+    wallet: &WalletUnlocked,
+    deploy_config: DeployConfig,
+    contract_bin: &str,
+) -> Result<Bech32ContractId> {
+    let salt: [u8; 32] = if deploy_config.force_deploy {
+        rand::rng().random()
+    } else {
+        [0; 32]
+    };
+
+    let contract_id = if deploy_config.deploy_in_blobs {
+        deploy_blobbed(contract_bin, wallet, salt).await?
+    } else {
+        deploy_normal(contract_bin, wallet, salt).await?
+    };
+
+    Ok(contract_id)
 }
 
 pub async fn deploy_blobbed(

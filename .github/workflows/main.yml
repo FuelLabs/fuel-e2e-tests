@@ -37,7 +37,7 @@ jobs:
         run: |
           fuelup toolchain new custom
           fuelup component add "forc@${FORC_VERSION}"
-      
+
       - name: Check Sway project formatting
         run: forc fmt --check
 
@@ -75,7 +75,7 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}
           restore-keys: |
             cargo-${{ runner.os }}-
-      
+
       - name: Download Sway artifacts
         uses: actions/download-artifact@v4
         with:
@@ -111,7 +111,7 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}
           restore-keys: |
             cargo-${{ runner.os }}-
-      
+
       - name: Download Sway artifacts
         uses: actions/download-artifact@v4
         with:
@@ -147,7 +147,7 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}
           restore-keys: |
             cargo-${{ runner.os }}-
-      
+
       - name: Download Sway artifacts
         uses: actions/download-artifact@v4
         with:
