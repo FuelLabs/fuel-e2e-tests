@@ -8,7 +8,7 @@ The following environment variables are used to configure the project. Make sure
 
 ### 1. `TARGET_CHAIN`
 
-- **Description:**  
+- **Description:**
   Whether to run locally, against the devnet or testnet.
 - **Accepted Values:**
   - `"local"`: Runs a local node.
@@ -17,17 +17,17 @@ The following environment variables are used to configure the project. Make sure
 
 ### 2. `DEV_KEY`
 
-- **Description:**  
+- **Description:**
   When `TARGET_CHAIN` is set to `"devnet"`, this variable must be set to the private key for the wallet used on the Devnet.
 
 ### 3. `TESTNET_KEY`
 
-- **Description:**  
+- **Description:**
   When `TARGET_CHAIN` is set to `"testnet"`, this variable must be set to the private key for the wallet used on the Testnet.
 
 ### 4. `FORCE_DEPLOY`
 
-- **Description:**  
+- **Description:**
   A boolean flag that indicates whether to force contract deployment even if a previous instance exists.
 - **Accepted Values:**
   - `"true"` (case insensitive) to force deployment.
@@ -35,7 +35,7 @@ The following environment variables are used to configure the project. Make sure
 
 ### 5. `DEPLOY_IN_BLOBS`
 
-- **Description:**  
+- **Description:**
   A boolean flag that indicates whether the contract should be deployed as blobs (as a loader) or not.
 - **Accepted Values:**
   - `"true"` (case insensitive) to deploy in blobs.
@@ -65,5 +65,5 @@ DEPLOY_IN_BLOBS=false
 To run the tests for the project, simply execute:
 
 ```bash
-cargo test
+cargo test -- --test-threads=1
 ```

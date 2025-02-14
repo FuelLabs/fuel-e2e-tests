@@ -56,7 +56,7 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
     let contract_id = helpers::deploy(
         &wallet,
         deploy_config,
-        "sway/liquidity_pool/out/release/liquidity_pool.bin",
+        "sway/contract_test/out/release/contract_test.bin",
     )
     .await?;
 
