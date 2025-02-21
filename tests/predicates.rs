@@ -1,8 +1,11 @@
 use fuel_e2e_tests::{
-    helpers,
+    helpers::{self, ProviderExt},
     setup::{self, Setup},
 };
-use fuels::{prelude::*, programs::executable::Executable, types::output::Output};
+use fuels::{
+    client::FuelClient, prelude::*, programs::executable::Executable,
+    types::output::Output,
+};
 
 #[tokio::test]
 async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
@@ -42,7 +45,7 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
     maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
 
     // fund predicate
-    let amount = 10_000;
+    let amount = 100_000;
     wallet
         .transfer(
             predicate.address(),
@@ -71,11 +74,13 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
 
     // transfer all coins from predicate back to wallet
     let wallet_amount_before_return = wallet.get_asset_balance(&base_asset_id).await?;
-    maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
+    let total_fee = maybe_transfer_all(&predicate, &wallet, base_asset_id)
+        .await?
+        .unwrap();
     assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, 0);
 
     let wallet_amount_after_return = wallet.get_asset_balance(&base_asset_id).await?;
-    assert!(wallet_amount_after_return > wallet_amount_before_return);
+    assert!(wallet_amount_after_return > wallet_amount_before_return - total_fee);
 
     Ok(())
 }
@@ -89,13 +94,15 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
 
     let configurables = MyPredicateConfigurables::default().with_SECRET_NUMBER(10001)?;
     let predicate_data = MyPredicateEncoder::default().encode_data(1, 19)?;
-    let executable = Executable::load_from("sway/predicate_blobs/out/release/predicate_blobs.bin")?;
+    let executable =
+        Executable::load_from("sway/predicate_blobs/out/release/predicate_blobs.bin")?;
 
     let loader = executable
         .convert_to_loader()?
         .with_configurables(configurables);
 
-    let mut predicate: Predicate = Predicate::from_code(loader.code()).with_data(predicate_data);
+    let mut predicate: Predicate =
+        Predicate::from_code(loader.code()).with_data(predicate_data);
 
     let Setup { wallet, .. } = setup::init().await?;
     let provider = wallet.try_provider()?.clone();
@@ -126,11 +133,13 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
 
     // transfer all coins from predicate back to wallet
     let wallet_amount_before_return = wallet.get_asset_balance(&base_asset_id).await?;
-    maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
+    let total_fee = maybe_transfer_all(&predicate, &wallet, base_asset_id)
+        .await?
+        .unwrap();
     assert_eq!(predicate.get_asset_balance(&base_asset_id).await?, 0);
 
     let wallet_amount_after_return = wallet.get_asset_balance(&base_asset_id).await?;
-    assert!(wallet_amount_after_return > wallet_amount_before_return);
+    assert!(wallet_amount_after_return > wallet_amount_before_return - total_fee);
 
     Ok(())
 }
@@ -139,12 +148,12 @@ async fn maybe_transfer_all(
     from: &impl Account,
     funder_and_receiver: &WalletUnlocked,
     asset_id: AssetId,
-) -> color_eyre::Result<()> {
+) -> color_eyre::Result<Option<u64>> {
     let provider = from.try_provider()?;
     let account_balance = from.get_asset_balance(&asset_id).await?;
 
     if account_balance == 0 {
-        return Ok(());
+        return Ok(None);
     }
 
     let inputs = from
@@ -156,15 +165,25 @@ async fn maybe_transfer_all(
         asset_id,
     )];
 
-    let mut tb = ScriptTransactionBuilder::prepare_transfer(inputs, outputs, TxPolicies::default());
+    let mut tb = ScriptTransactionBuilder::prepare_transfer(
+        inputs,
+        outputs,
+        TxPolicies::default(),
+    );
     funder_and_receiver
         .adjust_for_fee(&mut tb, account_balance)
         .await?;
     tb.add_signer(funder_and_receiver.clone())?;
 
     let tx = tb.build(provider).await?;
+    let tx_id = tx.id(provider.chain_info().await?.consensus_parameters.chain_id());
 
-    provider.send_transaction_and_await_commit(tx).await?;
+    provider
+        .send_transaction_and_await_commit(tx)
+        .await?
+        .check(None)?;
 
-    Ok(())
+    let total_fee = provider.get_tx_total_fee(&tx_id).await?.unwrap();
+
+    Ok(Some(total_fee))
 }
