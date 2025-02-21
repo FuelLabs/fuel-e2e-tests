@@ -2,10 +2,7 @@ use fuel_e2e_tests::{
     helpers::{self, ProviderExt},
     setup::{self, Setup},
 };
-use fuels::{
-    client::FuelClient, prelude::*, programs::executable::Executable,
-    types::output::Output,
-};
+use fuels::{prelude::*, programs::executable::Executable, types::output::Output};
 
 #[tokio::test]
 async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
@@ -45,7 +42,7 @@ async fn pay_contract_call_with_predicate() -> color_eyre::Result<()> {
     maybe_transfer_all(&predicate, &wallet, base_asset_id).await?;
 
     // fund predicate
-    let amount = 100_000;
+    let amount = 250_000;
     wallet
         .transfer(
             predicate.address(),
@@ -94,15 +91,13 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
 
     let configurables = MyPredicateConfigurables::default().with_SECRET_NUMBER(10001)?;
     let predicate_data = MyPredicateEncoder::default().encode_data(1, 19)?;
-    let executable =
-        Executable::load_from("sway/predicate_blobs/out/release/predicate_blobs.bin")?;
+    let executable = Executable::load_from("sway/predicate_blobs/out/release/predicate_blobs.bin")?;
 
     let loader = executable
         .convert_to_loader()?
         .with_configurables(configurables);
 
-    let mut predicate: Predicate =
-        Predicate::from_code(loader.code()).with_data(predicate_data);
+    let mut predicate: Predicate = Predicate::from_code(loader.code()).with_data(predicate_data);
 
     let Setup { wallet, .. } = setup::init().await?;
     let provider = wallet.try_provider()?.clone();
@@ -165,11 +160,7 @@ async fn maybe_transfer_all(
         asset_id,
     )];
 
-    let mut tb = ScriptTransactionBuilder::prepare_transfer(
-        inputs,
-        outputs,
-        TxPolicies::default(),
-    );
+    let mut tb = ScriptTransactionBuilder::prepare_transfer(inputs, outputs, TxPolicies::default());
     funder_and_receiver
         .adjust_for_fee(&mut tb, account_balance)
         .await?;
