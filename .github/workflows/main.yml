@@ -53,9 +53,12 @@ jobs:
             sway/**/*.json
 
   cargo-check:
-    name: cargo check --tests
+    name: cargo check --tests (${{ matrix.fuel }})
     runs-on: buildjet-4vcpu-ubuntu-2204
     needs: compile-sway
+    strategy:
+      matrix:
+        fuel: [fuels_lts_70, fuels_71]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -86,12 +89,15 @@ jobs:
         run: ls -R
 
       - name: Run cargo check --tests
-        run: cargo check --tests
+        run: cargo check --no-default-features --features ${{ matrix.fuel }} --tests
 
   cargo-clippy:
-    name: cargo clippy --tests
+    name: cargo clippy --tests (${{ matrix.fuel }})
     runs-on: buildjet-4vcpu-ubuntu-2204
     needs: compile-sway
+    strategy:
+      matrix:
+        fuel: [fuels_lts_70, fuels_71]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -122,12 +128,15 @@ jobs:
         run: ls -R
 
       - name: Run cargo clippy --tests
-        run: cargo clippy --tests
+        run: cargo clippy --no-default-features --features ${{ matrix.fuel }} --tests
 
   cargo-test:
-    name: cargo test (TARGET_CHAIN="local")
+    name: cargo test (TARGET_CHAIN="local") (${{ matrix.fuel }})
     runs-on: buildjet-4vcpu-ubuntu-2204
     needs: compile-sway
+    strategy:
+      matrix:
+        fuel: [fuels_lts_70, fuels_71]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -170,4 +179,4 @@ jobs:
       - name: Run cargo test with local node
         run: |
           export TARGET_CHAIN="local"
-          cargo test
+          cargo test --no-default-features --features ${{ matrix.fuel }}
