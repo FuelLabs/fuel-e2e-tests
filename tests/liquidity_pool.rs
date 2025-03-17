@@ -1,3 +1,5 @@
+fuel_e2e_tests::define_fuels!();
+
 use fuel_e2e_tests::setup::{self, Setup};
 use utils::{DepositCompleted, DepositEvent, Fixture};
 
@@ -31,7 +33,7 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
         DepositEvent {
             amount: deposit_amount,
             minted: amount_minted,
-            to: wallet.address().into()
+            to: crate::fuels::accounts::ViewOnlyAccount::address(&wallet).into()
         }
     );
 
@@ -62,7 +64,7 @@ async fn liquidity_pool() -> color_eyre::Result<()> {
 mod utils {
     use color_eyre::Result;
     use fuel_e2e_tests::{
-        helpers::{self, ProviderExt},
+        helpers::{self},
         setup::DeployConfig,
     };
     use fuels::{prelude::*, types::Bits256};
@@ -73,7 +75,7 @@ mod utils {
     ));
 
     pub struct Fixture {
-        instance: LiquidityContractBindings<WalletUnlocked>,
+        instance: LiquidityContractBindings<crate::setup::Wallet>,
     }
 
     #[derive(Debug)]
@@ -93,7 +95,10 @@ mod utils {
             Ok(())
         }
 
-        pub async fn deploy(wallet: &WalletUnlocked, deploy_config: DeployConfig) -> Result<Self> {
+        pub async fn deploy(
+            wallet: &crate::setup::Wallet,
+            deploy_config: DeployConfig,
+        ) -> Result<Self> {
             let contract_id = helpers::deploy(
                 wallet,
                 deploy_config,
@@ -125,11 +130,16 @@ mod utils {
                 .pop()
                 .expect("should have had an event");
 
-            let total_fee = self
-                .provider()
-                .get_tx_total_fee(&resp.tx_id.expect("should have tx_id"))
-                .await?
-                .expect("tx executed");
+            #[cfg(feature = "fuels_lts_70")]
+            let total_fee = helpers::ProviderExt::get_tx_total_fee(
+                &self.provider(),
+                &resp.tx_id.expect("should have tx_id"),
+            )
+            .await?
+            .expect("tx executed");
+
+            #[cfg(feature = "fuels_71")]
+            let total_fee = resp.tx_status.total_fee;
 
             Ok(DepositCompleted { total_fee, event })
         }
@@ -148,11 +158,16 @@ mod utils {
                 .call()
                 .await?;
 
-            let total_fee = self
-                .provider()
-                .get_tx_total_fee(&resp.tx_id.expect("should have tx_id"))
-                .await?
-                .expect("tx executed");
+            #[cfg(feature = "fuels_lts_70")]
+            let total_fee = helpers::ProviderExt::get_tx_total_fee(
+                &self.provider(),
+                &resp.tx_id.expect("should have tx_id"),
+            )
+            .await?
+            .expect("tx executed");
+
+            #[cfg(feature = "fuels_71")]
+            let total_fee = resp.tx_status.total_fee;
 
             Ok(total_fee)
         }
@@ -167,7 +182,7 @@ mod utils {
         }
 
         fn provider(&self) -> Provider {
-            self.instance.account().provider().unwrap().clone()
+            self.instance.account().try_provider().unwrap().clone()
         }
 
         fn minted_asset_id(&self) -> AssetId {

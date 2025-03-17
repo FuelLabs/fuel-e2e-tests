@@ -1,10 +1,14 @@
 use color_eyre::{eyre::Context, Result, Section};
 use dotenv::dotenv;
 use fuels::{
-    accounts::{provider::Provider, wallet::WalletUnlocked},
-    crypto::SecretKey,
-    test_helpers::launch_provider_and_get_wallet,
+    accounts::provider::Provider, crypto::SecretKey, test_helpers::launch_provider_and_get_wallet,
 };
+
+#[cfg(feature = "fuels_lts_70")]
+pub type Wallet = fuels::accounts::wallet::WalletUnlocked;
+
+#[cfg(feature = "fuels_71")]
+pub type Wallet = fuels::accounts::wallet::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct DeployConfig {
@@ -17,7 +21,7 @@ pub struct DeployConfig {
 #[derive(Debug, Clone)]
 pub struct Setup {
     /// With funds, taken from ENV
-    pub wallet: WalletUnlocked,
+    pub wallet: Wallet,
     /// Tweaking how contracts should be deployed
     pub deploy_config: DeployConfig,
 }
@@ -31,9 +35,7 @@ pub async fn init() -> Result<Setup> {
 
     let chain = read_chain()?;
 
-    let mut wallet = chain.wallet().await?;
-
-    chain.populate_provider(&mut wallet).await?;
+    let wallet = chain.wallet().await?;
 
     let force_deploy = check_boolean_env("FORCE_DEPLOY")?;
     let deploy_in_blobs = check_boolean_env("DEPLOY_IN_BLOBS")?;
@@ -62,40 +64,32 @@ enum Chain {
 }
 
 impl Chain {
-    async fn populate_provider(&self, wallet: &mut WalletUnlocked) -> Result<()> {
-        let connect_to_url = |url: &'static str| async move {
-            Provider::connect(url)
+    async fn wallet(&self) -> Result<Wallet> {
+        let wallet_from_env_key = |env_var: &'static str, url: &'static str| async move {
+            let provider = Provider::connect(url)
                 .await
-                .wrap_err_with(|| format!("failed to connect to {url}"))
-        };
+                .wrap_err_with(|| format!("failed to connect to {url}"))?;
 
-        match self {
-            Chain::Devnet => {
-                let provider = connect_to_url("https://devnet.fuel.network").await?;
-                wallet.set_provider(provider);
-            }
-            Chain::Testnet => {
-                let provider = connect_to_url("https://testnet.fuel.network").await?;
-                wallet.set_provider(provider);
-            }
-            Chain::Local => {}
-        }
-
-        Ok(())
-    }
-
-    async fn wallet(&self) -> Result<WalletUnlocked> {
-        let wallet_from_env_key = |env_var: &str| -> Result<WalletUnlocked> {
             let key: SecretKey = read_env(env_var)?
                 .parse()
                 .wrap_err("given private key is invalid")?;
 
-            Ok(WalletUnlocked::new_from_private_key(key, None))
+            #[cfg(feature = "fuels_lts_70")]
+            let wallet = Wallet::new_from_private_key(key, Some(provider));
+            #[cfg(feature = "fuels_71")]
+            let wallet = {
+                let signer = fuels::accounts::signers::private_key::PrivateKeySigner::new(key);
+                Wallet::new(signer, provider)
+            };
+
+            Result::<_>::Ok(wallet)
         };
 
         let wallet = match self {
-            Chain::Devnet => wallet_from_env_key("DEV_KEY")?,
-            Chain::Testnet => wallet_from_env_key("TESTNET_KEY")?,
+            Chain::Devnet => wallet_from_env_key("DEV_KEY", "https://devnet.fuel.network").await?,
+            Chain::Testnet => {
+                wallet_from_env_key("TESTNET_KEY", "https://testnet.fuel.network").await?
+            }
             Chain::Local => launch_provider_and_get_wallet().await?,
         };
 

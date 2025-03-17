@@ -1,5 +1,7 @@
+fuel_e2e_tests::define_fuels!();
+
 use fuel_e2e_tests::setup::{self, Setup};
-use fuels::prelude::*;
+use fuels::accounts::ViewOnlyAccount;
 
 // Because it has checks for indexation and it broke testnet once because the sdk wasn't
 // checking the flags and trying to paginate.

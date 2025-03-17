@@ -14,7 +14,12 @@ dotenv = "0.15"
 # fuel-core-lib needed because we cannot configure the health-check timeout and
 # that causes our CI to give up on waiting for the spawned fuel-core binary to
 # become healthy
-fuels = { version = "0.70", features = ["fuel-core-lib"] }
+fuels_71 = { package = "fuels", version = "0.71", features = [
+  "fuel-core-lib",
+], optional = true }
+fuels_lts_70 = { package = "fuels", version = "0.70", features = [
+  "fuel-core-lib",
+], optional = true }
 tokio = { version = "1.43.0", features = ["full"] }
 color-eyre = "0.6"
 # TODO: FuelLabs/fuels-rs#1394
@@ -22,3 +27,8 @@ color-eyre = "0.6"
 # expose the total fee in the tx status
 fuel-core-client = "0.41"
 rand = "0.9.0"
+
+[features]
+default = ["fuels_lts_70"]
+fuels_lts_70 = ["dep:fuels_lts_70"]
+fuels_71 = ["dep:fuels_71"]

@@ -1,5 +1,7 @@
+fuel_e2e_tests::define_fuels!();
+
 use fuel_e2e_tests::{
-    helpers::{self, ProviderExt},
+    helpers::{self},
     setup::{self, Setup},
 };
 use fuels::{prelude::*, programs::executable::Executable, types::output::Output};
@@ -141,7 +143,7 @@ async fn predicate_blobs() -> color_eyre::Result<()> {
 
 async fn maybe_transfer_all(
     from: &impl Account,
-    funder_and_receiver: &WalletUnlocked,
+    funder_and_receiver: &crate::setup::Wallet,
     asset_id: AssetId,
 ) -> color_eyre::Result<Option<u64>> {
     let provider = from.try_provider()?;
@@ -164,17 +166,23 @@ async fn maybe_transfer_all(
     funder_and_receiver
         .adjust_for_fee(&mut tb, account_balance)
         .await?;
-    tb.add_signer(funder_and_receiver.clone())?;
+    funder_and_receiver.add_witnesses(&mut tb)?;
 
     let tx = tb.build(provider).await?;
+
+    #[cfg(feature = "fuels_lts_70")]
     let tx_id = tx.id(provider.chain_info().await?.consensus_parameters.chain_id());
 
-    provider
-        .send_transaction_and_await_commit(tx)
-        .await?
-        .check(None)?;
+    let status = provider.send_transaction_and_await_commit(tx).await?;
+    status.check(None)?;
 
-    let total_fee = provider.get_tx_total_fee(&tx_id).await?.unwrap();
+    #[cfg(feature = "fuels_lts_70")]
+    let total_fee = helpers::ProviderExt::get_tx_total_fee(provider, &tx_id)
+        .await?
+        .unwrap();
+
+    #[cfg(feature = "fuels_71")]
+    let total_fee = status.total_fee();
 
     Ok(Some(total_fee))
 }

@@ -1,8 +1,10 @@
+define_fuels!();
+
 use fuel_e2e_tests::{
-    helpers,
+    define_fuels, helpers,
     setup::{self, Setup},
 };
-use fuels::prelude::*;
+use fuels::{macros::abigen, programs::calls::CallHandler};
 
 #[tokio::test]
 async fn multi_call() -> color_eyre::Result<()> {
