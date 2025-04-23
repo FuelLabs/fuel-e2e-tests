@@ -15,10 +15,8 @@ dotenv = "0.15"
 # that causes our CI to give up on waiting for the spawned fuel-core binary to
 # become healthy
 fuels_71 = { package = "fuels", version = "0.71", features = [
-  "fuel-core-lib",
 ], optional = true }
 fuels_lts_70 = { package = "fuels", version = "0.70", features = [
-  "fuel-core-lib",
 ], optional = true }
 tokio = { version = "1.43.0", features = ["full"] }
 color-eyre = "0.6"
